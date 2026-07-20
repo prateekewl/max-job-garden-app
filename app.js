@@ -61,6 +61,7 @@ const state = {
   profile: {},
   preferences: normalisePreferences(DEFAULT_PREFERENCES),
   jobs: [],
+  searchIndex: [],
   sources: [],
   people: [],
   activity: [],
@@ -73,6 +74,9 @@ const state = {
   offline: false,
   syncing: false,
   search: "",
+  searchMode: "recommended",
+  searchLocation: "all",
+  searchLimit: 30,
   discoverFilter: "week",
   sort: "newest",
   selectedJobId: "",
@@ -192,6 +196,7 @@ function loadLocalWorkspace() {
   state.jobs = (saved.jobs || [])
     .map(normaliseJob)
     .filter((job) => !(["Remotive", "Arbeitnow"].includes(job.source) || / careers$/i.test(job.source)) || (isMaxLocationEligible(job) && isMaxRoleEligible(job)));
+  state.searchIndex = [];
   state.sources = [{ id: "job-garden-curated", name: "Max's curated job watch", type: "curated", endpoint: "./jobs.json", enabled: true, status: "Ready" }];
   state.people = [{ id: "max", name: "Max", role: "Candidate" }];
   state.activity = saved.activity || [];
@@ -209,6 +214,7 @@ function hydrate(payload) {
   state.profile = payload.profile || {};
   state.preferences = normalisePreferences(payload.preferences || DEFAULT_PREFERENCES);
   state.jobs = uniqueJobs([...(payload.jobs || []), ...(payload.history || [])]).map(normaliseJob);
+  state.searchIndex = (payload.searchJobs || []).map(normaliseJob);
   state.sources = payload.sources || [];
   state.people = payload.people || [];
   state.activity = payload.activity || [];
@@ -342,64 +348,78 @@ function renderToday(jobs, stats) {
     </div>`;
 }
 
-function renderDiscover(jobs, stats) {
-  const candidates = jobs.filter((job) => ["new", "saved", "applying"].includes(job.status) && !job.removed);
-  const search = state.search.trim().toLowerCase();
-  const filtered = sortJobs(candidates.filter((job) => {
-    const haystack = `${job.title} ${job.company} ${job.location} ${job.description} ${job.source}`.toLowerCase();
-    if (search && !haystack.includes(search)) return false;
-    if (state.discoverFilter === "saved") return job.status === "saved";
+function renderDiscover(jobs) {
+  const recommendedMode = state.searchMode === "recommended";
+  const trackedCandidates = jobs.filter((job) => ["new", "saved", "applying"].includes(job.status) && !job.removed);
+  const candidates = recommendedMode ? trackedCandidates : decoratedSearchJobs().filter((job) => !job.removed);
+  const freshCandidates = candidates.filter((job) => {
     const age = jobAge(job);
-    if (age === null || age > state.feedFreshnessDays) return false;
+    return age !== null && age <= state.feedFreshnessDays;
+  });
+  const searched = freshCandidates.filter((job) => matchesJobSearch(job, state.search));
+  const locationFiltered = searched.filter((job) => recommendedMode || matchesSearchLocation(job, state.searchLocation));
+  const filtered = sortJobs(locationFiltered.filter((job) => {
+    if (state.discoverFilter === "saved") return recommendedMode && job.status === "saved";
+    const age = jobAge(job);
     if (state.discoverFilter === "today") return age === 0;
     if (state.discoverFilter === "three-days") return age <= 3;
     if (state.discoverFilter === "remote") return job.workPattern === "remote" || /remote/i.test(job.location);
     return age <= state.feedFreshnessDays;
   }), state.sort);
-  const freshCandidates = candidates.filter((job) => {
-    const age = jobAge(job);
-    return age !== null && age <= state.feedFreshnessDays;
-  });
+  const visible = recommendedMode ? filtered : filtered.slice(0, state.searchLimit);
   const counts = {
     today: freshCandidates.filter((job) => jobAge(job) === 0).length,
     threeDays: freshCandidates.filter((job) => jobAge(job) <= 3).length,
     week: freshCandidates.length,
     remote: freshCandidates.filter((job) => job.workPattern === "remote" || /remote/i.test(job.location)).length,
-    saved: candidates.filter((job) => job.status === "saved").length,
-    unseen: freshCandidates.filter((job) => job.status === "new" && !job.seenAt).length,
+    saved: trackedCandidates.filter((job) => job.status === "saved").length,
+    unseen: trackedCandidates.filter((job) => jobAge(job) <= state.feedFreshnessDays && job.status === "new" && !job.seenAt).length,
   };
   const checkedSources = state.feedSourceCount || state.scout.sourceCount || 1;
+  const headline = recommendedMode ? "Best-fit roles for Max" : "Search every fresh role";
+  const intro = recommendedMode
+    ? `A focused shortlist based on Max’s CV, Glasgow, Edinburgh, and suitable remote work. Every role is no more than ${state.feedFreshnessDays} days old.`
+    : `Search ${counts.week} fresh, location-safe roles from ${checkedSources} connected sources. Keywords search titles, employers, locations, skills, and advert text.`;
+  const emptyTitle = recommendedMode ? "No recommended roles in this view" : "No fresh jobs match that search";
+  const emptyBody = recommendedMode
+    ? "The all-sources search may still have useful roles outside the automatic shortlist."
+    : "Try a shorter keyword, another eligible location, or the full seven-day window.";
 
   return `
     <div class="page-stack">
       <section class="section">
-        <div class="section-heading">
-          <div><p class="eyebrow">Fresh first, always</p><h2>Roles worth seeing this week</h2><p>Only genuinely eligible roles posted in the last ${state.feedFreshnessDays} days reach this page. Newest is the default.</p></div>
-          <div class="section-actions">${counts.unseen ? `<button class="button quiet small" type="button" data-action="mark-all-seen"><svg aria-hidden="true"><use href="#icon-check"></use></svg>Mark seen</button>` : ""}<button class="button quiet small" type="button" data-action="run-scout"><svg aria-hidden="true"><use href="#icon-refresh"></use></svg>Check now</button></div>
+        <div class="section-heading discover-heading">
+          <div><p class="eyebrow">Fresh first, always</p><h2>${headline}</h2><p>${intro}</p></div>
+          <div class="section-actions">${recommendedMode && counts.unseen ? `<button class="button quiet small" type="button" data-action="mark-all-seen"><svg aria-hidden="true"><use href="#icon-check"></use></svg>Mark seen</button>` : ""}<button class="button quiet small" type="button" data-action="run-scout"><svg aria-hidden="true"><use href="#icon-refresh"></use></svg>Check now</button></div>
+        </div>
+        <div class="discover-modes" role="tablist" aria-label="Choose job discovery mode">
+          <button type="button" role="tab" aria-selected="${recommendedMode}" class="discover-mode ${recommendedMode ? "active" : ""}" data-search-mode="recommended"><span><strong>For Max</strong><small>CV-matched shortlist</small></span><b>${trackedCandidates.filter((job) => jobAge(job) <= state.feedFreshnessDays).length}</b></button>
+          <button type="button" role="tab" aria-selected="${!recommendedMode}" class="discover-mode ${!recommendedMode ? "active" : ""}" data-search-mode="all"><span><strong>Search all sources</strong><small>No CV-title gate</small></span><b>${state.searchIndex.length}</b></button>
         </div>
         <div class="freshness-overview" aria-label="Fresh job summary">
           <article class="freshness-stat urgent"><span>Today</span><strong>${counts.today}</strong><small>posted in the last 24 hours</small></article>
           <article class="freshness-stat"><span>Last 72 hours</span><strong>${counts.threeDays}</strong><small>best window for early applications</small></article>
-          <article class="freshness-stat"><span>This week</span><strong>${counts.week}</strong><small>across ${checkedSources} watched sources</small></article>
+          <article class="freshness-stat"><span>${recommendedMode ? "This week" : "Searchable now"}</span><strong>${counts.week}</strong><small>across ${checkedSources} connected sources</small></article>
         </div>
-        <div class="discover-toolbar">
-          <label class="search-box"><svg aria-hidden="true"><use href="#icon-search"></use></svg><input id="searchJobs" type="search" value="${escapeHtml(state.search)}" placeholder="Search role, company, location…" aria-label="Search jobs" /></label>
+        <div class="discover-toolbar ${recommendedMode ? "" : "all-search"}">
+          <label class="search-box"><svg aria-hidden="true"><use href="#icon-search"></use></svg><input id="searchJobs" type="search" value="${escapeHtml(state.search)}" placeholder="${recommendedMode ? "Search this shortlist…" : "Try customer success, German, onboarding…"}" aria-label="Search jobs" /></label>
+          ${recommendedMode ? "" : `<select class="toolbar-select" id="searchLocation" aria-label="Filter job location">${option("all", "Any eligible location", state.searchLocation)}${option("remote", "Remote", state.searchLocation)}${option("glasgow", "Glasgow", state.searchLocation)}${option("edinburgh", "Edinburgh", state.searchLocation)}</select>`}
           <select class="toolbar-select" id="sortJobs" aria-label="Sort jobs">
             ${option("newest", "Newest first", state.sort)}
-            ${option("recommended", "Best match", state.sort)}
+            ${option("recommended", "Best CV match", state.sort)}
             ${option("salary", "Highest salary", state.sort)}
           </select>
-          <button class="button quiet" type="button" data-view="settings" data-settings-section="search"><svg aria-hidden="true"><use href="#icon-filter"></use></svg>Search profile</button>
+          ${recommendedMode ? `<button class="button quiet" type="button" data-view="settings" data-settings-section="search"><svg aria-hidden="true"><use href="#icon-filter"></use></svg>Search profile</button>` : ""}
         </div>
+        ${recommendedMode ? "" : `<div class="keyword-suggestions" aria-label="Suggested searches"><span>Try:</span>${["customer success", "service delivery", "German", "account manager", "onboarding"].map((term) => `<button type="button" data-search-query="${escapeHtml(term)}">${escapeHtml(term)}</button>`).join("")}</div>`}
         <div class="filter-strip" role="group" aria-label="Filter jobs">
           ${filterChip("week", "This week", counts.week)}
           ${filterChip("today", "Today", counts.today)}
           ${filterChip("three-days", "72 hours", counts.threeDays)}
-          ${filterChip("remote", "Remote", counts.remote)}
-          ${filterChip("saved", "Saved", counts.saved)}
+          ${recommendedMode ? `${filterChip("remote", "Remote", counts.remote)}${filterChip("saved", "Saved", counts.saved)}` : ""}
         </div>
-        <div class="results-line"><span><strong>${filtered.length}</strong> current role${filtered.length === 1 ? "" : "s"}</span><span>${state.scout.lastRunAt ? `Checked ${timeAgo(state.scout.lastRunAt)}` : "Checking automatically"}</span></div>
-        ${filtered.length ? `<div class="job-grid">${filtered.map(renderJobCard).join("")}</div>` : renderEmpty("search", "No fresh roles in this view", "That is better than padding the list with stale or wrong jobs. Scout will check again automatically.", "Show this week", "clear-filters")}
+        <div class="results-line"><span><strong>${filtered.length}</strong> matching role${filtered.length === 1 ? "" : "s"}${!recommendedMode && filtered.length > visible.length ? ` · showing ${visible.length}` : ""}</span><span>${state.scout.lastRunAt ? `Checked ${timeAgo(state.scout.lastRunAt)}` : "Checking automatically"}</span></div>
+        ${visible.length ? `<div class="job-grid">${visible.map((job) => renderJobCard(job, { broad: !recommendedMode })).join("")}</div>${!recommendedMode && visible.length < filtered.length ? `<div class="load-more"><button class="button quiet" type="button" data-action="load-more">Show ${Math.min(30, filtered.length - visible.length)} more</button></div>` : ""}` : renderEmpty("search", emptyTitle, emptyBody, recommendedMode ? "Search all sources" : "Clear search", recommendedMode ? "show-all-search" : "clear-filters")}
       </section>
     </div>`;
 }
@@ -608,7 +628,7 @@ function renderSettings() {
         </section>
 
         <section class="settings-section" id="settings-sources">
-          <div class="settings-section-heading"><h2>Job sources</h2><p>Scout watches selected official employer boards for UK-accessible roles that match Max's CV—not generic worldwide listings.</p></div>
+          <div class="settings-section-heading"><h2>Job sources</h2><p>Scout combines official employer boards and specialist job feeds, keeps them fresh and location-safe, then separates Max’s shortlist from the wider searchable index.</p></div>
           <article class="settings-card">
             <div class="settings-card-header"><div><h3>Connected sources</h3><p>Scans rotate through local and remote searches during waking hours.</p></div></div>
             <div class="source-list">${state.sources.length ? state.sources.map(renderSourceRow).join("") : `<div class="private-note"><svg aria-hidden="true"><use href="#icon-zap"></use></svg><span>Add a public company feed or restore the default no-key sources.</span></div>`}</div>
@@ -657,15 +677,15 @@ function renderSettings() {
     </div>`;
 }
 
-function renderJobCard(job) {
+function renderJobCard(job, options = {}) {
   const salary = salaryText(job);
-  const unseen = job.status === "new" && !job.seenAt;
+  const unseen = !options.broad && job.status === "new" && !job.seenAt;
   return `<button class="job-card ${unseen ? "unseen" : ""}" type="button" data-open-job="${escapeHtml(job.id)}">
-    <div class="job-card-top"><div><div class="meta-row">${freshnessPill(job)}${job.status !== "new" ? statusPill(job.status) : ""}</div><h3>${escapeHtml(job.title)}</h3><span class="job-card-company">${escapeHtml(job.company)}</span></div>${scoreRing(job.fit)}</div>
+    <div class="job-card-top"><div><div class="meta-row">${freshnessPill(job)}${job.status !== "new" ? statusPill(job.status) : ""}${options.broad ? metaPill("All sources") : ""}</div><h3>${escapeHtml(job.title)}</h3><span class="job-card-company">${escapeHtml(job.company)}</span></div>${scoreRing(job.fit)}</div>
     <div class="job-card-meta"><span><svg aria-hidden="true"><use href="#icon-map"></use></svg>${escapeHtml(job.location)}</span><span><svg aria-hidden="true"><use href="#icon-money"></use></svg>${escapeHtml(salary)}</span></div>
     <p class="job-card-scan">${escapeHtml(advertSummary(job.description, 150) || "Open for the key fit signals, concerns, and application decision.")}</p>
     <div class="job-card-reasons">${job.fit.reasons.slice(0, 2).map((reason) => metaPill(reason, "good")).join("")}${job.fit.concerns.slice(0, 1).map((reason) => metaPill(reason, "warn")).join("")}</div>
-    <div class="job-card-footer"><span>${escapeHtml(job.aggregated ? `${job.source} listing` : "Direct employer advert")}</span><strong>30-sec review<svg aria-hidden="true"><use href="#icon-arrow"></use></svg></strong></div>
+    <div class="job-card-footer"><span>${escapeHtml(job.aggregated ? `${job.source} listing` : "Direct employer advert")}</span><strong>${options.broad ? "Open result" : "30-sec review"}<svg aria-hidden="true"><use href="#icon-arrow"></use></svg></strong></div>
   </button>`;
 }
 
@@ -689,7 +709,7 @@ function renderActionItem({ job, action }) {
 }
 
 function renderJobDialog(jobId) {
-  const job = decoratedJobs().find((item) => item.id === jobId);
+  const job = findViewJob(jobId);
   if (!job) return;
   const checklist = applicationChecklist(job);
   const summary = advertSummary(job.description, 420);
@@ -737,12 +757,13 @@ function renderJobDialog(jobId) {
 
 function openJob(jobId) {
   state.selectedJobId = jobId;
-  const job = state.jobs.find((item) => item.id === jobId);
+  const job = findViewJob(jobId);
   if (!job) return;
-  if (!job.seenAt) {
-    job.seenAt = new Date().toISOString();
-    saveSeenId(job.id);
-    postAction("mark_seen", { jobId: job.id }, { silent: true });
+  const trackedJob = state.jobs.find((item) => item.id === jobId);
+  if (trackedJob && !trackedJob.seenAt) {
+    trackedJob.seenAt = new Date().toISOString();
+    saveSeenId(trackedJob.id);
+    postAction("mark_seen", { jobId: trackedJob.id }, { silent: true });
   }
   renderJobDialog(jobId);
   jobDialog.showModal();
@@ -782,6 +803,23 @@ function handleDocumentClick(event) {
   const filter = event.target.closest("[data-filter]");
   if (filter) {
     state.discoverFilter = filter.dataset.filter;
+    state.searchLimit = 30;
+    render();
+    return;
+  }
+  const searchMode = event.target.closest("[data-search-mode]");
+  if (searchMode) {
+    state.searchMode = searchMode.dataset.searchMode === "all" ? "all" : "recommended";
+    state.discoverFilter = "week";
+    state.searchLimit = 30;
+    render();
+    requestAnimationFrame(() => document.querySelector("#searchJobs")?.focus({ preventScroll: true }));
+    return;
+  }
+  const searchQuery = event.target.closest("[data-search-query]");
+  if (searchQuery) {
+    state.search = searchQuery.dataset.searchQuery || "";
+    state.searchLimit = 30;
     render();
     return;
   }
@@ -812,6 +850,7 @@ function handleDocumentClick(event) {
 function handleDocumentInput(event) {
   if (event.target.id === "searchJobs") {
     state.search = event.target.value;
+    state.searchLimit = 30;
     window.clearTimeout(handleDocumentInput.timer);
     handleDocumentInput.timer = window.setTimeout(render, 120);
   }
@@ -821,6 +860,12 @@ function handleDocumentChange(event) {
   const target = event.target;
   if (target.id === "sortJobs") {
     state.sort = target.value;
+    render();
+    return;
+  }
+  if (target.id === "searchLocation") {
+    state.searchLocation = target.value;
+    state.searchLimit = 30;
     render();
     return;
   }
@@ -836,13 +881,14 @@ function handleDocumentChange(event) {
     return;
   }
   if (target.matches("[data-checklist-id]")) {
-    const job = state.jobs.find((item) => item.id === target.dataset.jobId);
+    const job = ensureTrackedJob(target.dataset.jobId);
     if (!job) return;
     job.checklist = { ...(job.checklist || {}), [target.dataset.checklistId]: target.checked };
     updateJob(job.id, { checklist: job.checklist }, "Checklist saved", true);
     return;
   }
   if (target.matches("[data-job-field]")) {
+    ensureTrackedJob(target.dataset.jobId);
     const value = target.dataset.jobField === "interviewAt" && target.value ? new Date(target.value).toISOString() : target.value;
     const patch = { [target.dataset.jobField]: value };
     if (target.dataset.jobField === "status") patch.status = normaliseStatus(value);
@@ -895,7 +941,18 @@ function handleDocumentKeydown(event) {
 async function handleAction(action) {
   if (action === "clear-filters") {
     state.search = "";
+    state.searchLocation = "all";
     state.discoverFilter = "week";
+    state.searchLimit = 30;
+    render();
+  } else if (action === "show-all-search") {
+    state.searchMode = "all";
+    state.search = "";
+    state.discoverFilter = "week";
+    state.searchLimit = 30;
+    render();
+  } else if (action === "load-more") {
+    state.searchLimit += 30;
     render();
   } else if (action === "mark-all-seen") {
     markAllSeen();
@@ -921,7 +978,7 @@ async function handleAction(action) {
 }
 
 async function handleJobAction(action, jobId) {
-  const job = state.jobs.find((item) => item.id === jobId);
+  const job = action === "toggle-skip" ? findViewJob(jobId) : ensureTrackedJob(jobId);
   if (!job) return;
   if (action === "save") {
     updateJob(jobId, { status: "saved" }, "Saved for a focused review");
@@ -1146,6 +1203,8 @@ async function fetchLocalSource(source) {
     const payload = await response.json();
     state.feedSourceCount = (payload.sources || []).length || state.feedSourceCount;
     state.feedFreshnessDays = Math.max(1, Math.min(7, Number(payload.freshnessWindowDays) || 7));
+    state.searchIndex = (payload.searchJobs || payload.jobs || []).map(normaliseJob);
+    state.generatedAt = payload.generatedAt || state.generatedAt;
     return (payload.jobs || []).map(normaliseJob);
   }
   if (source.id === "remotive") {
@@ -1412,6 +1471,43 @@ function decoratedJobs() {
   const seenIds = new Set(loadJson(KEYS.seenIds, []));
   const jobs = state.jobs.map((job) => seenIds.has(job.id) && !job.seenAt ? { ...job, seenAt: "this-device" } : job);
   return decorateJobs(jobs, state.preferences, jobs);
+}
+
+function decoratedSearchJobs() {
+  const trackedById = new Map(state.jobs.map((job) => [job.id, job]));
+  const trackedByUrl = new Map(state.jobs.filter((job) => job.url).map((job) => [job.url, job]));
+  const jobs = state.searchIndex.map((job) => trackedById.get(job.id) || trackedByUrl.get(job.url) || job);
+  return decorateJobs(uniqueJobs(jobs), state.preferences, state.jobs);
+}
+
+function findViewJob(jobId) {
+  return decoratedJobs().find((job) => job.id === jobId) || decoratedSearchJobs().find((job) => job.id === jobId);
+}
+
+function ensureTrackedJob(jobId) {
+  let job = state.jobs.find((item) => item.id === jobId);
+  if (job) return job;
+  const searchJob = state.searchIndex.find((item) => item.id === jobId);
+  if (!searchJob) return null;
+  job = normaliseJob({ ...searchJob, status: "new", seenAt: new Date().toISOString(), firstSeenAt: new Date().toISOString() });
+  state.jobs.unshift(job);
+  saveSeenId(job.id);
+  saveLocalWorkspace();
+  return job;
+}
+
+function matchesJobSearch(job, query) {
+  const terms = String(query || "").trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (!terms.length) return true;
+  const haystack = `${job.title} ${job.company} ${job.location} ${job.description} ${job.source} ${(job.tags || []).join(" ")} ${job.category || ""}`.toLowerCase();
+  return terms.every((term) => haystack.includes(term));
+}
+
+function matchesSearchLocation(job, location) {
+  if (!location || location === "all") return true;
+  const text = `${job.location} ${job.workPattern}`.toLowerCase();
+  if (location === "remote") return text.includes("remote");
+  return text.includes(location);
 }
 
 function isManagedFeedJob(job) {

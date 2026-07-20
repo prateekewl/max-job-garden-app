@@ -337,6 +337,15 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
 :root[data-theme="dark"] .insight-card.accent p { color: rgba(23,38,31,.72); }
 
 /* Discover */
+.discover-heading { margin-bottom: 14px; }
+.discover-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; border-radius: 16px; padding: 5px; background: var(--surface-muted); }
+.discover-mode { display: grid; min-width: 0; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; border: 1px solid transparent; border-radius: 12px; padding: 11px 13px; color: var(--muted); background: transparent; text-align: left; }
+.discover-mode:hover { color: var(--ink); }
+.discover-mode.active { border-color: var(--line); color: var(--ink); background: var(--surface); box-shadow: var(--shadow-sm); }
+.discover-mode span { display: grid; min-width: 0; gap: 2px; }
+.discover-mode strong { font-size: 0.78rem; }
+.discover-mode small { color: var(--muted); font-size: 0.64rem; }
+.discover-mode b { display: inline-grid; min-width: 30px; height: 30px; place-items: center; border-radius: 999px; padding: 0 7px; color: var(--green); background: var(--surface-green); font-size: 0.7rem; }
 .freshness-overview { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 4px 0 18px; }
 .freshness-stat { display: grid; min-height: 112px; align-content: center; border: 1px solid var(--line); border-radius: 15px; padding: 15px 17px; background: var(--surface); }
 .freshness-stat > span { color: var(--muted); font-size: 0.68rem; font-weight: 790; }
@@ -349,6 +358,10 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
 .search-box svg { width: 18px; flex: 0 0 18px; color: var(--muted); }
 .search-box input { width: 100%; min-width: 0; border: 0; outline: 0; padding: 10px 0; color: var(--ink); background: transparent; }
 .toolbar-select { min-height: 44px; border: 1px solid var(--line); border-radius: 12px; padding: 0 36px 0 12px; color: var(--ink); background: var(--surface); font-size: 0.8rem; font-weight: 700; }
+.keyword-suggestions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: -2px 0 12px; color: var(--muted); font-size: 0.68rem; }
+.keyword-suggestions > span { margin-right: 2px; font-weight: 750; }
+.keyword-suggestions button { min-height: 29px; border: 1px solid var(--line); border-radius: 999px; padding: 0 9px; color: var(--ink-soft); background: var(--surface); font-size: 0.68rem; }
+.keyword-suggestions button:hover { border-color: color-mix(in srgb, var(--green) 42%, var(--line)); color: var(--green); background: var(--surface-green); }
 .filter-strip { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 20px; }
 .filter-chip { min-height: 34px; border-radius: 999px; padding: 0 11px; color: var(--muted); font-size: 0.74rem; background: var(--surface); }
 .filter-chip:hover { color: var(--ink); border-color: var(--line-strong); }
@@ -374,6 +387,7 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
 .job-card-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; }
 .job-card-footer span { color: var(--faint); font-size: 0.66rem; }
 .job-card-footer strong { display: inline-flex; align-items: center; gap: 5px; color: var(--green); font-size: 0.72rem; }
+.load-more { display: flex; justify-content: center; padding-top: 18px; }
 
 /* Pipeline */
 .pipeline-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
@@ -691,6 +705,7 @@ dialog::backdrop { background: rgba(12, 24, 17, .52); backdrop-filter: blur(6px)
   .action-list { grid-template-columns: 1fr; }
   .insight-grid { grid-template-columns: 1fr; }
   .insight-card.accent { grid-column: auto; }
+  .discover-modes { grid-template-columns: 1fr; }
   .freshness-overview { grid-template-columns: repeat(3, minmax(138px, 1fr)); overflow-x: auto; padding-bottom: 4px; }
   .freshness-stat { min-height: 104px; }
   .discover-toolbar { grid-template-columns: 1fr 1fr; }
