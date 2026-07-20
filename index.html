@@ -8,43 +8,22 @@
     <meta name="theme-color" content="#173f2c">
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://script.google.com https://script.googleusercontent.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; font-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'none'"
+      content="default-src 'self'; script-src 'self' https://script.google.com https://script.googleusercontent.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://remotive.com https://www.arbeitnow.com; font-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'none'"
     >
     <title>Max's Job Garden</title>
-    <meta name="description" content="A private, focused job search workspace for Max.">
-    <script src="./bootstrap.js?v=20260720-5"></script>
-    <link rel="manifest" href="./manifest.webmanifest?v=20260720-5">
+    <meta name="description" content="A focused, practical job-search workspace built for Max.">
+    <script src="./bootstrap.js?v=20260720-6"></script>
+    <link rel="manifest" href="./manifest.webmanifest?v=20260720-6">
     <link rel="icon" href="./assets/garden-mark.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" sizes="192x192" href="./assets/garden-mark-192.png">
-    <link rel="stylesheet" href="./styles.css?v=20260720-5">
+    <link rel="stylesheet" href="./styles.css?v=20260720-6">
   </head>
   <body>
     <a class="skip-link" href="#viewContent">Skip to the workspace</a>
 
-    <div class="access-gate" id="accessGate">
-      <section class="access-card" aria-labelledby="accessTitle">
-        <div class="access-art" aria-hidden="true">
-          <span class="access-sun"></span>
-          <img src="./assets/garden-companions.jpg" alt="">
-        </div>
-        <div class="access-copy">
-          <div class="brand-lockup">
-            <span class="brand-mark"><svg aria-hidden="true"><use href="#icon-sprout"></use></svg></span>
-            <span>Max's Job Garden</span>
-          </div>
-          <p class="eyebrow">Private workspace</p>
-          <h1 id="accessTitle">Welcome to Max’s Job Garden.</h1>
-          <p class="access-intro">A focused job-search workspace shared privately by Max and Prateek.</p>
-          <div class="access-status" id="accessStatus" role="status">
-            <span class="status-dot"></span>
-            <span>Open your private Job Garden link to continue.</span>
-          </div>
-          <p class="access-help">Access is limited to Max and Prateek. Your private link works on mobile and desktop and securely connects this device.</p>
-        </div>
-      </section>
-    </div>
+    <div id="accessGate" hidden></div>
 
-    <div class="app-frame" id="appRoot" hidden>
+    <div class="app-frame" id="appRoot">
       <aside class="sidebar" aria-label="Primary navigation">
         <div class="sidebar-top">
           <button class="brand-lockup brand-button" type="button" data-view="today" aria-label="Go to Today">
@@ -169,11 +148,11 @@
     <dialog class="small-dialog" id="accountDialog" aria-labelledby="accountDialogTitle">
       <div class="account-dialog-content">
         <div class="dialog-heading compact">
-          <div><p class="eyebrow">Private access</p><h2 id="accountDialogTitle">This device</h2></div>
+          <div><p class="eyebrow">Your workspace</p><h2 id="accountDialogTitle">This device</h2></div>
           <button class="icon-button" type="button" data-close-dialog="accountDialog" aria-label="Close"><svg aria-hidden="true"><use href="#icon-close"></use></svg></button>
         </div>
-        <p id="accountSummary">Signed in with a private access link.</p>
-        <button class="button danger full-button" id="lockDevice" type="button"><svg aria-hidden="true"><use href="#icon-lock"></use></svg>Lock and remove access from this device</button>
+        <p id="accountSummary">Your jobs and settings are saved on this device.</p>
+        <button class="button danger full-button" id="lockDevice" type="button"><svg aria-hidden="true"><use href="#icon-trash"></use></svg>Reset this device</button>
       </div>
     </dialog>
 
@@ -215,6 +194,6 @@
     </svg>
 
     <script src="./assets/jspdf.umd.min.js"></script>
-    <script type="module" src="./app.js?v=20260720-5"></script>
+    <script type="module" src="./app.js?v=20260720-6"></script>
   </body>
 </html>

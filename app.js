@@ -29,14 +29,14 @@ import {
   titleCase,
   uniqueList,
 } from "./core.js";
-import { demoHistory, demoJobs, demoProfile, demoScout } from "./demo-data.js";
+import { demoProfile } from "./demo-data.js";
 import { downloadTailoredCv } from "./pdf.js";
 
 const KEYS = Object.freeze({
   access: "mjg:access",
   api: "mjg:api",
   cache: "mjg:cache:v2",
-  demo: "mjg:demo",
+  workspace: "mjg:workspace:v1",
   seenIds: "mjg:seen-ids",
   personHint: "mjg:person-hint",
   theme: "mjg:theme",
@@ -52,7 +52,7 @@ const VIEW_META = Object.freeze({
 });
 
 const state = {
-  mode: "private",
+  mode: "local",
   view: initialView(),
   person: null,
   profile: {},
@@ -96,19 +96,13 @@ async function init() {
   applyTheme(localStorage.getItem(KEYS.theme) || "system");
   registerServiceWorker();
 
-  const params = new URLSearchParams(window.location.search);
-  const demoRequested = params.get("demo") === "1" || localStorage.getItem(KEYS.demo) === "1";
   const hasPrivateAccess = Boolean(localStorage.getItem(KEYS.access) && localStorage.getItem(KEYS.api));
 
   if (hasPrivateAccess) {
     await connectPrivate();
     return;
   }
-  if (demoRequested) {
-    loadDemo();
-    return;
-  }
-  setAccessStatus("Open your private Job Garden link to continue.", "");
+  loadLocalWorkspace();
 }
 
 function bindStaticEvents() {
@@ -156,7 +150,7 @@ async function connectPrivate() {
   const api = localStorage.getItem(KEYS.api);
   const access = localStorage.getItem(KEYS.access);
   if (!api || !access) {
-    setAccessStatus("That secure link is incomplete. Ask Prateek to send it again.", "error");
+    loadLocalWorkspace();
     return;
   }
 
@@ -167,7 +161,6 @@ async function connectPrivate() {
     hydrate(payload);
     state.connected = true;
     state.offline = false;
-    localStorage.removeItem(KEYS.demo);
     saveCache(payload);
     showApp();
     startPolling();
@@ -182,28 +175,34 @@ async function connectPrivate() {
       showToast("Offline copy", "Showing the last safely cached version on this device.", "error");
       return;
     }
-    setAccessStatus(error.message || "The private garden could not be opened.", "error");
+    loadLocalWorkspace();
+    showToast("Working on this device", "The shared service is unavailable, so Job Garden opened normally with local saving.", "error");
   }
 }
 
-function loadDemo() {
-  state.mode = "demo";
-  state.person = { id: "max", name: "Max", role: "candidate" };
-  state.profile = structuredClone(demoProfile);
-  state.preferences = normalisePreferences(DEFAULT_PREFERENCES);
-  state.jobs = [...structuredClone(demoJobs), ...structuredClone(demoHistory)].map(normaliseJob);
-  state.sources = [
-    { id: "adzuna", name: "Adzuna UK", type: "adzuna", enabled: true, status: "Healthy", lastScanAt: demoScout.lastRunAt },
-    { id: "greenhouse", name: "Greenhouse boards", type: "greenhouse", enabled: true, status: "Healthy", lastScanAt: demoScout.lastRunAt },
-    { id: "lever", name: "Lever boards", type: "lever", enabled: true, status: "Healthy", lastScanAt: demoScout.lastRunAt },
+function loadLocalWorkspace() {
+  const saved = loadJson(KEYS.workspace, {});
+  const personHint = new URLSearchParams(window.location.search).get("for") || localStorage.getItem(KEYS.personHint) || "max";
+  const isPrateek = String(personHint).toLowerCase() === "prateek";
+  state.mode = "local";
+  state.person = isPrateek
+    ? { id: "prateek", name: "Prateek", role: "supporter" }
+    : { id: "max", name: "Max", role: "candidate" };
+  state.profile = saved.profile || structuredClone(demoProfile);
+  state.preferences = normalisePreferences(saved.preferences || DEFAULT_PREFERENCES);
+  state.jobs = (saved.jobs || []).map(normaliseJob);
+  state.sources = saved.sources || [
+    { id: "remotive", name: "Remotive", type: "api", endpoint: "https://remotive.com/api/remote-jobs", enabled: true, status: "Ready" },
+    { id: "arbeitnow", name: "Arbeitnow Europe", type: "api", endpoint: "https://www.arbeitnow.com/api/job-board-api", enabled: true, status: "Ready" },
   ];
   state.people = [{ id: "max", name: "Max", role: "Candidate" }, { id: "prateek", name: "Prateek", role: "Supporter" }];
-  state.activity = [];
-  state.scout = structuredClone(demoScout);
-  state.generatedAt = new Date().toISOString();
+  state.activity = saved.activity || [];
+  state.scout = saved.scout || { status: "ready", sourceCount: state.sources.filter((source) => source.enabled !== false).length };
+  state.generatedAt = saved.generatedAt || new Date().toISOString();
   state.connected = true;
   state.offline = false;
   showApp();
+  startLocalScout();
 }
 
 function hydrate(payload) {
@@ -223,7 +222,7 @@ function hydrate(payload) {
 }
 
 function showApp() {
-  accessGate.hidden = true;
+  if (accessGate) accessGate.hidden = true;
   appRoot.hidden = false;
   renderShell();
   render();
@@ -248,20 +247,22 @@ function render() {
 }
 
 function renderShell() {
+  const viewTitleElement = document.querySelector("#viewTitle");
+  if (!viewTitleElement) return;
   const meta = VIEW_META[state.view] || VIEW_META.today;
   document.querySelector("#viewEyebrow").textContent = meta.eyebrow;
-  document.querySelector("#viewTitle").textContent = meta.title;
+  viewTitleElement.textContent = meta.title;
   document.title = `${meta.title} · Max's Job Garden`;
   document.querySelectorAll("[data-view]").forEach((button) => button.classList.toggle("active", button.dataset.view === state.view));
 
   const personName = state.person?.name || "Max";
   const personRole = state.person?.role === "supporter" ? "Supporter" : "Candidate";
   document.querySelector("#personName").textContent = personName;
-  document.querySelector("#personRole").textContent = state.mode === "demo" ? `${personRole} · Preview` : personRole;
+  document.querySelector("#personRole").textContent = personRole;
   document.querySelector("#personAvatar").textContent = initials(personName);
-  document.querySelector("#accountSummary").textContent = state.mode === "demo"
-    ? "You are exploring a sample workspace. No private data is loaded or saved to the shared garden."
-    : `${personName} is using a private link stored only on this device. Locking removes the link and cached job data.`;
+  document.querySelector("#accountSummary").textContent = state.mode === "local"
+    ? `${personName}'s jobs, preferences, and progress are saved in this browser. Reset only if you want to start again on this device.`
+    : `${personName} is connected to the shared Job Garden.`;
 
   const stats = deriveStats(decoratedJobs(), new Date(), state.preferences);
   setBadge("todayNavCount", stats.followUps, stats.followUps > 0);
@@ -541,7 +542,7 @@ function renderSettings() {
   return `
     <div class="settings-layout">
       <nav class="settings-nav" aria-label="Settings sections">
-        ${settingsNavButton("search", "Search profile")}${settingsNavButton("alerts", "Alerts & Scout")}${settingsNavButton("sources", "Sources")}${settingsNavButton("profile", "CV facts")}${settingsNavButton("privacy", "Access & privacy")}
+        ${settingsNavButton("search", "Search profile")}${settingsNavButton("alerts", "Alerts & Scout")}${settingsNavButton("sources", "Sources")}${settingsNavButton("profile", "CV facts")}${settingsNavButton("privacy", "Device & privacy")}
       </nav>
       <div class="settings-main">
         <section class="settings-section" id="settings-search">
@@ -580,17 +581,16 @@ function renderSettings() {
         </section>
 
         <section class="settings-section" id="settings-alerts">
-          <div class="settings-section-heading"><h2>Alerts and automation</h2><p>Email works while the website is closed. Browser alerts work on this device when permitted.</p></div>
+          <div class="settings-section-heading"><h2>Alerts and automation</h2><p>Scout checks fresh roles automatically while Job Garden is open. Device notifications appear after you enable them once.</p></div>
           <article class="settings-card">
             <div class="settings-card-header"><div><h3>Scout health</h3><p>${escapeHtml(scoutStatusSentence())}</p></div><span class="health-badge ${scoutHealthy() ? "" : "warn"}">${scoutHealthy() ? "Healthy" : "Needs setup"}</span></div>
-            <div class="switch-row"><div class="switch-copy"><strong>Immediate email alerts</strong><span>Send new roles at or above the match threshold to Max and Prateek.</span></div>${switchControl("alertEmail", prefs.alertEmail)}</div>
-            <div class="switch-row"><div class="switch-copy"><strong>Telegram alerts</strong><span>Optional; requires a bot token and chat IDs in Apps Script.</span></div>${switchControl("alertTelegram", prefs.alertTelegram)}</div>
+            ${state.mode === "private" ? `<div class="switch-row"><div class="switch-copy"><strong>Immediate email alerts</strong><span>Send new roles at or above the match threshold to Max and Prateek.</span></div>${switchControl("alertEmail", prefs.alertEmail)}</div><div class="switch-row"><div class="switch-copy"><strong>Telegram alerts</strong><span>Send matched roles to connected chats.</span></div>${switchControl("alertTelegram", prefs.alertTelegram)}</div>` : `<div class="switch-row"><div class="switch-copy"><strong>Automatic checks</strong><span>Runs when the site opens and every 15 minutes while it remains open.</span></div><span class="health-badge">On</span></div>`}
             <div class="field-grid three" style="margin-top:16px">
               <label class="field"><span>Alert at</span><input form="preferencesForm" name="alertThreshold" type="number" min="0" max="99" value="${prefs.alertThreshold}" /></label>
               <label class="field"><span>Quiet from</span><input form="preferencesForm" name="quietHoursStart" type="number" min="0" max="23" value="${prefs.quietHoursStart}" /></label>
               <label class="field"><span>Quiet until</span><input form="preferencesForm" name="quietHoursEnd" type="number" min="0" max="23" value="${prefs.quietHoursEnd}" /></label>
             </div>
-            <div class="settings-card-footer"><button class="button primary" form="preferencesForm" type="submit"><svg aria-hidden="true"><use href="#icon-check"></use></svg>Save alert timing</button><button class="button quiet" type="button" data-action="run-scout"><svg aria-hidden="true"><use href="#icon-refresh"></use></svg>Run Scout now</button><button class="button quiet" type="button" data-action="test-alert"><svg aria-hidden="true"><use href="#icon-mail"></use></svg>Send test email</button></div>
+            <div class="settings-card-footer"><button class="button primary" form="preferencesForm" type="submit"><svg aria-hidden="true"><use href="#icon-check"></use></svg>Save alert timing</button><button class="button quiet" type="button" data-action="run-scout"><svg aria-hidden="true"><use href="#icon-refresh"></use></svg>Run Scout now</button>${state.mode === "private" ? `<button class="button quiet" type="button" data-action="test-alert"><svg aria-hidden="true"><use href="#icon-mail"></use></svg>Send test email</button>` : ""}</div>
           </article>
           <article class="settings-card">
             <div class="settings-card-header"><div><h3>This device</h3><p>Permission is always requested after a deliberate click.</p></div><span class="health-badge ${notificationPermission === "granted" ? "" : "warn"}">${titleCase(notificationPermission)}</span></div>
@@ -600,16 +600,16 @@ function renderSettings() {
         </section>
 
         <section class="settings-section" id="settings-sources">
-          <div class="settings-section-heading"><h2>Job sources</h2><p>Adzuna covers UK-wide search; Greenhouse, Lever, and RSS feeds can watch chosen companies directly without scraping LinkedIn or Indeed.</p></div>
+          <div class="settings-section-heading"><h2>Job sources</h2><p>Two no-key feeds search remote and European roles immediately, with no account or activation step.</p></div>
           <article class="settings-card">
             <div class="settings-card-header"><div><h3>Connected sources</h3><p>Scans rotate through local and remote searches during waking hours.</p></div></div>
-            <div class="source-list">${state.sources.length ? state.sources.map(renderSourceRow).join("") : `<div class="private-note"><svg aria-hidden="true"><use href="#icon-zap"></use></svg><span>Run the one-time Apps Script setup, then add the free Adzuna API credentials. The source list will appear here.</span></div>`}</div>
+            <div class="source-list">${state.sources.length ? state.sources.map(renderSourceRow).join("") : `<div class="private-note"><svg aria-hidden="true"><use href="#icon-zap"></use></svg><span>Add a public company feed or restore the default no-key sources.</span></div>`}</div>
           </article>
-          ${isOwner ? `<article class="settings-card"><div class="settings-card-header"><div><h3>Add a company feed</h3><p>Use a public Greenhouse board, Lever site, or HTTPS RSS feed.</p></div></div><form id="sourceForm"><div class="field-grid"><label class="field"><span>Name</span><input name="name" required placeholder="Company careers" /></label><label class="field"><span>Type</span><select name="type"><option value="greenhouse">Greenhouse</option><option value="lever">Lever</option><option value="rss">RSS</option></select></label><label class="field full"><span>Public endpoint</span><input name="endpoint" type="url" inputmode="url" pattern="https://.*" required placeholder="https://boards-api.greenhouse.io/v1/boards/…/jobs?content=true" /></label></div><div class="settings-card-footer"><button class="button primary" type="submit"><svg aria-hidden="true"><use href="#icon-plus"></use></svg>Add source</button></div></form></article>` : ""}
+          ${state.mode === "private" && isOwner ? `<article class="settings-card"><div class="settings-card-header"><div><h3>Add a company feed</h3><p>Use a public Greenhouse board, Lever site, or HTTPS RSS feed.</p></div></div><form id="sourceForm"><div class="field-grid"><label class="field"><span>Name</span><input name="name" required placeholder="Company careers" /></label><label class="field"><span>Type</span><select name="type"><option value="greenhouse">Greenhouse</option><option value="lever">Lever</option><option value="rss">RSS</option></select></label><label class="field full"><span>Public endpoint</span><input name="endpoint" type="url" inputmode="url" pattern="https://.*" required placeholder="https://boards-api.greenhouse.io/v1/boards/…/jobs?content=true" /></label></div><div class="settings-card-footer"><button class="button primary" type="submit"><svg aria-hidden="true"><use href="#icon-plus"></use></svg>Add source</button></div></form></article>` : ""}
         </section>
 
         <section class="settings-section" id="settings-profile">
-          <div class="settings-section-heading"><h2>CV facts</h2><p>These private details are returned only after a valid access link. Tailoring never invents experience.</p></div>
+          <div class="settings-section-heading"><h2>CV facts</h2><p>These details stay in this browser unless the shared workspace is connected. Tailoring never invents experience.</p></div>
           <article class="settings-card">
             <form id="profileForm">
               <div class="field-grid">
@@ -626,23 +626,23 @@ function renderSettings() {
                 <label class="field full"><span>Languages <small>one per line</small></span><textarea name="languages" rows="3">${escapeHtml((profile.languages || []).join("\n"))}</textarea></label>
                 <label class="field full"><span>Education</span><textarea name="education" rows="3">${escapeHtml(profile.education || "")}</textarea></label>
               </div>
-              <div class="private-note" style="margin-top:14px"><svg aria-hidden="true"><use href="#icon-lock"></use></svg><span>Employment roles and bullets remain in the private Profile sheet. This form updates the common fields without discarding that detailed history.</span></div>
+              <div class="private-note" style="margin-top:14px"><svg aria-hidden="true"><use href="#icon-lock"></use></svg><span>Employment facts stay on this device. The CV tool changes emphasis, never employers, dates, titles, or qualifications.</span></div>
               <div class="settings-card-footer"><button class="button primary" type="submit"><svg aria-hidden="true"><use href="#icon-check"></use></svg>Save CV facts</button></div>
             </form>
           </article>
         </section>
 
         <section class="settings-section" id="settings-privacy">
-          <div class="settings-section-heading"><h2>Access and privacy</h2><p>The website URL is a public shell. Private data requires an unguessable personal link and is never shipped in the website files.</p></div>
+          <div class="settings-section-heading"><h2>Device and privacy</h2><p>The website contains no application history or contact details. What you add is saved in this browser.</p></div>
           <article class="settings-card">
-            <div class="settings-card-header"><div><h3>People with access</h3><p>Exactly two personal links. A link can be rotated without making the site public.</p></div></div>
+            <div class="settings-card-header"><div><h3>Workspace roles</h3><p>Use <strong>?for=max</strong> for Max and <strong>?for=prateek</strong> for Prateek; each device keeps its own local copy.</p></div></div>
             <div class="source-list">${accessPeople.map((person) => `<div class="source-row"><span class="avatar">${escapeHtml(initials(person.name))}</span><span class="source-copy"><strong>${escapeHtml(person.name)}</strong><span>${escapeHtml(titleCase(person.role || "member"))}</span></span><span class="health-badge">Private</span></div>`).join("")}</div>
-            ${isOwner ? `<div class="settings-card-footer"><button class="button quiet" type="button" data-action="resend-max-link"><svg aria-hidden="true"><use href="#icon-mail"></use></svg>Email Max a fresh link</button></div>` : ""}
+            ${state.mode === "private" && isOwner ? `<div class="settings-card-footer"><button class="button quiet" type="button" data-action="resend-max-link"><svg aria-hidden="true"><use href="#icon-mail"></use></svg>Email Max a fresh link</button></div>` : ""}
           </article>
           <article class="settings-card">
             <div class="switch-row"><div class="switch-copy"><strong>Appearance</strong><span>Use the device theme or pick a consistent light or dark workspace.</span></div><select class="toolbar-select" id="themeSelect" aria-label="Appearance">${option("system", "System", prefs.theme)}${option("light", "Light", prefs.theme)}${option("dark", "Dark", prefs.theme)}</select></div>
-            <div class="switch-row"><div class="switch-copy"><strong>Shared Sheet</strong><span>${state.sheetUrl ? "The application history and live queue are stored in the existing private Sheet." : "Available after the Apps Script setup is connected."}</span></div>${state.sheetUrl ? `<a class="button quiet small" href="${escapeHtml(safeUrl(state.sheetUrl))}" target="_blank" rel="noreferrer">Open Sheet</a>` : ""}</div>
-            <div class="switch-row"><div class="switch-copy"><strong>Lock this device</strong><span>Remove the personal access token and cached private data from this browser.</span></div><button class="button danger small" type="button" data-action="lock-device">Lock</button></div>
+            ${state.mode === "private" ? `<div class="switch-row"><div class="switch-copy"><strong>Shared Sheet</strong><span>${state.sheetUrl ? "The application history and live queue are stored in the existing private Sheet." : "The shared service is connecting."}</span></div>${state.sheetUrl ? `<a class="button quiet small" href="${escapeHtml(safeUrl(state.sheetUrl))}" target="_blank" rel="noreferrer">Open Sheet</a>` : ""}</div>` : ""}
+            <div class="switch-row"><div class="switch-copy"><strong>Reset this device</strong><span>Remove saved jobs, preferences, and cached data from this browser.</span></div><button class="button danger small" type="button" data-action="lock-device">Reset</button></div>
           </article>
         </section>
       </div>
@@ -886,7 +886,7 @@ async function handleAction(action) {
     await runScout();
   } else if (action === "test-alert") {
     await postAction("test_alert", {}, { refresh: false });
-    showToast("Test requested", state.mode === "demo" ? "Preview mode does not send email." : "Check the alert email inbox in a moment.", "success");
+    showToast("Test requested", "Check the alert inbox in a moment.", "success");
   } else if (action === "enable-notifications") {
     await enableNotifications();
   } else if (action === "install-app") {
@@ -897,7 +897,7 @@ async function handleAction(action) {
     downloadCv();
   } else if (action === "resend-max-link") {
     await postAction("resend_max_link", {}, { refresh: false });
-    showToast("Fresh link requested", state.mode === "demo" ? "Preview mode does not send email." : "Max will receive a new private link; the previous Max link will stop working.", "success");
+    showToast("Fresh link requested", "Max will receive a new private link; the previous Max link will stop working.", "success");
   } else if (action === "lock-device") {
     lockDevice();
   }
@@ -972,6 +972,7 @@ function addManualJob(form) {
     return;
   }
   state.jobs.unshift(job);
+  saveLocalWorkspace();
   postAction("upsert_job", { job });
   addJobDialog.close();
   state.view = "discover";
@@ -997,6 +998,7 @@ function savePreferencesForm(form) {
   if (detachedAlertTelegram) next.alertTelegram = detachedAlertTelegram.checked;
   state.preferences = normalisePreferences(next);
   applyTheme(state.preferences.theme);
+  saveLocalWorkspace();
   postAction("save_preferences", { preferences: state.preferences });
   render();
   showToast("Search profile saved", "New and existing roles have been rescored.", "success");
@@ -1013,6 +1015,7 @@ function saveProfileForm(form) {
     languages: splitLines(data.languages),
   };
   state.profile = profile;
+  saveLocalWorkspace();
   postAction("save_profile", { profile });
   render();
   showToast("CV facts saved", "Future PDFs and messages will use the updated profile.", "success");
@@ -1022,6 +1025,7 @@ function saveSourceForm(form) {
   const data = Object.fromEntries(new FormData(form).entries());
   const source = { id: `custom-${slugify(`${data.name}-${Date.now()}`)}`, ...data, enabled: true, status: "Pending first scan" };
   state.sources.push(source);
+  saveLocalWorkspace();
   postAction("upsert_source", { source });
   form.reset();
   render();
@@ -1033,6 +1037,7 @@ function toggleSource(sourceId) {
   if (!source) return;
   source.enabled = source.enabled === false;
   source.status = source.enabled ? "Pending next scan" : "Paused";
+  saveLocalWorkspace();
   postAction("toggle_source", { sourceId, enabled: source.enabled });
   render();
   showToast(source.enabled ? "Source resumed" : "Source paused", source.name, "success");
@@ -1042,25 +1047,20 @@ function updateJob(jobId, patch, message = "Saved", silent = false) {
   const job = state.jobs.find((item) => item.id === jobId);
   if (!job) return;
   Object.assign(job, patch, { updatedAt: new Date().toISOString() });
+  saveLocalWorkspace();
   postAction("update_job", { jobId, changes: patch }, { silent: true });
   if (!silent) showToast(message, `${job.company} · ${job.title}`, "success");
 }
 
 async function runScout() {
   if (state.syncing) return;
+  if (state.mode === "local") {
+    showToast("Scout is checking", "Scanning enabled sources for fresh roles.");
+    return runLocalScout();
+  }
   state.syncing = true;
   renderShell();
   showToast("Scout is checking", "Scanning enabled sources for fresh roles.");
-  if (state.mode === "demo") {
-    window.setTimeout(() => {
-      state.syncing = false;
-      state.scout.lastRunAt = new Date().toISOString();
-      state.scout.lastNewCount = 0;
-      render();
-      showToast("Scout finished", "No new sample roles this time.", "success");
-    }, 700);
-    return;
-  }
   try {
     await postAction("run_scout", {}, { silent: true, refresh: false });
     window.setTimeout(() => refreshData(), 1800);
@@ -1069,20 +1069,118 @@ async function runScout() {
   }
 }
 
+async function runLocalScout(options = {}) {
+  if (state.syncing) return;
+  state.syncing = true;
+  document.querySelector("#refreshData")?.classList.add("spinning");
+  renderShell();
+  if (state.mode !== "local" || !navigator.onLine) {
+    state.syncing = false;
+    renderShell();
+    return;
+  }
+  const existingKeys = new Set(state.jobs.flatMap((job) => [job.id, job.url].filter(Boolean)));
+  const enabled = state.sources.filter((source) => source.enabled !== false);
+  const startedAt = new Date();
+  try {
+    const settled = await Promise.allSettled(enabled.map(fetchLocalSource));
+    if (!settled.some((result) => result.status === "fulfilled")) throw new Error("All enabled job sources were unavailable");
+    const candidates = settled.flatMap((result) => result.status === "fulfilled" ? result.value : []);
+    const ranked = decorateJobs(uniqueJobs(candidates), state.preferences, state.jobs)
+      .filter((job) => job.fit.score >= state.preferences.reviewThreshold)
+      .sort((a, b) => b.fit.score - a.fit.score || String(b.postedDate).localeCompare(String(a.postedDate)));
+    const fresh = ranked.filter((job) => !existingKeys.has(job.id) && !existingKeys.has(job.url)).slice(0, 80);
+    if (fresh.length) state.jobs = uniqueJobs([...fresh, ...state.jobs]);
+    const now = new Date().toISOString();
+    const sourceResults = new Map(enabled.map((source, index) => [source.id, settled[index]]));
+    state.sources = state.sources.map((source) => {
+      if (source.enabled === false) return source;
+      const result = sourceResults.get(source.id);
+      return { ...source, status: result?.status === "fulfilled" ? "Healthy" : "Temporarily unavailable", lastScanAt: now };
+    });
+    state.scout = { status: "healthy", lastRunAt: now, nextRunAt: new Date(Date.now() + 15 * 60000).toISOString(), lastNewCount: fresh.length, sourceCount: enabled.length };
+    state.generatedAt = now;
+    saveLocalWorkspace();
+    if (fresh.length) await notifyNewJobs(fresh);
+    render();
+    renderConnection();
+    if (!options.silent) showToast("Scout finished", fresh.length ? `${fresh.length} relevant role${fresh.length === 1 ? "" : "s"} added.` : "No new relevant roles this time.", "success");
+  } catch (error) {
+    state.scout = { ...state.scout, status: "error", lastRunAt: startedAt.toISOString(), detail: error.message };
+    saveLocalWorkspace();
+    render();
+    if (!options.silent) showToast("Scout could not check", "Your saved workspace still works; try Refresh again shortly.", "error");
+  } finally {
+    state.syncing = false;
+    document.querySelector("#refreshData")?.classList.remove("spinning");
+    renderShell();
+  }
+}
+
+async function fetchLocalSource(source) {
+  if (source.id === "remotive") {
+    const response = await fetch(source.endpoint, { cache: "no-store", referrerPolicy: "no-referrer" });
+    if (!response.ok) throw new Error(`Remotive returned ${response.status}`);
+    const payload = await response.json();
+    return (payload.jobs || []).map((job) => normaliseJob({
+      id: `remotive-${job.id}`,
+      sourceId: String(job.id || ""),
+      title: job.title,
+      company: job.company_name,
+      location: job.candidate_required_location || "Remote",
+      salary: job.salary,
+      source: "Remotive",
+      url: job.url,
+      postedDate: job.publication_date,
+      discoveredAt: new Date().toISOString(),
+      workPattern: "remote",
+      contractType: job.job_type,
+      category: job.category,
+      tags: job.tags,
+      description: job.description,
+      status: "new",
+    }));
+  }
+  if (source.id === "arbeitnow") {
+    const response = await fetch(source.endpoint, { cache: "no-store", referrerPolicy: "no-referrer" });
+    if (!response.ok) throw new Error(`Arbeitnow returned ${response.status}`);
+    const payload = await response.json();
+    return (payload.data || []).map((job) => normaliseJob({
+      id: `arbeitnow-${job.slug}`,
+      sourceId: job.slug,
+      title: job.title,
+      company: job.company_name,
+      location: job.location || (job.remote ? "Europe · Remote" : "Europe"),
+      source: "Arbeitnow",
+      url: job.url,
+      postedDate: job.created_at,
+      discoveredAt: new Date().toISOString(),
+      workPattern: job.remote ? "remote" : "unknown",
+      contractType: (job.job_types || []).join(" "),
+      tags: job.tags,
+      description: job.description,
+      status: "new",
+    }));
+  }
+  return [];
+}
+
 function markAllSeen() {
   const now = new Date().toISOString();
   state.jobs.filter((job) => job.status === "new" && !job.seenAt).forEach((job) => {
     job.seenAt = now;
     saveSeenId(job.id);
   });
+  saveLocalWorkspace();
   postAction("mark_all_seen", {}, { silent: true });
   render();
   showToast("All caught up", "Fresh jobs will stand out again after the next scan.", "success");
 }
 
 async function refreshData(options = {}) {
-  if (!state.connected || state.mode === "demo") {
-    if (!options.silent) showToast("Preview refreshed", "Sample data is already up to date.", "success");
+  if (!state.connected) return;
+  if (state.mode === "local") {
+    await runLocalScout({ silent: options.silent });
     return;
   }
   if (state.syncing && !options.force) return;
@@ -1112,9 +1210,9 @@ async function refreshData(options = {}) {
 }
 
 async function postAction(action, data = {}, options = {}) {
-  if (state.mode === "demo") {
-    if (!options.silent) showToast("Preview change", "Saved for this preview only.", "success");
-    return { ok: true, demo: true };
+  if (state.mode === "local") {
+    saveLocalWorkspace();
+    return { ok: true, local: true };
   }
   const api = localStorage.getItem(KEYS.api);
   const access = localStorage.getItem(KEYS.access);
@@ -1185,10 +1283,8 @@ function scrollToSettings(section) {
 }
 
 function renderConnection() {
-  if (state.mode === "demo") {
-    connectionBanner.hidden = false;
-    connectionBanner.className = "connection-banner";
-    connectionBanner.textContent = "Sample preview — changes are not shared and no alerts are sent.";
+  if (state.mode === "local") {
+    connectionBanner.hidden = true;
     return;
   }
   if (state.offline || !navigator.onLine) {
@@ -1201,19 +1297,24 @@ function renderConnection() {
 }
 
 function setAccessStatus(message, tone) {
+  if (!accessStatus) return;
   accessStatus.className = `access-status ${tone || ""}`;
   accessStatus.querySelector("span:last-child").textContent = message;
 }
 
 function lockDevice() {
-  [KEYS.access, KEYS.api, KEYS.cache, KEYS.demo, KEYS.personHint, KEYS.seenIds].forEach((key) => localStorage.removeItem(key));
+  [KEYS.access, KEYS.api, KEYS.cache, KEYS.workspace, KEYS.personHint, KEYS.seenIds].forEach((key) => localStorage.removeItem(key));
   window.clearInterval(state.pollTimer);
   accountDialog?.close();
-  appRoot.hidden = true;
-  accessGate.hidden = false;
-  state.connected = false;
-  setAccessStatus("This device is locked. Open a personal link to unlock it again.", "success");
-  window.history.replaceState(null, "", window.location.pathname);
+  state.jobs = [];
+  state.activity = [];
+  state.preferences = normalisePreferences(DEFAULT_PREFERENCES);
+  state.profile = structuredClone(demoProfile);
+  state.scout = { status: "ready", sourceCount: 2 };
+  state.connected = true;
+  render();
+  renderConnection();
+  showToast("Device reset", "Local jobs and settings were removed from this browser.", "success");
 }
 
 async function enableNotifications() {
@@ -1224,7 +1325,7 @@ async function enableNotifications() {
   let permission = Notification.permission;
   if (permission === "default") permission = await Notification.requestPermission();
   if (permission !== "granted") {
-    showToast("Notifications remain off", "Email alerts still work while the website is closed.", "error");
+    showToast("Notifications remain off", "You can enable them later from this browser's site settings.", "error");
     render();
     return;
   }
@@ -1386,11 +1487,12 @@ function heroMessage(action) {
 
 function scoutHealthy() {
   const status = String(state.scout.status || "").toLowerCase();
-  return state.mode === "demo" || ["healthy", "ok", "ready", "success"].includes(status) || Boolean(state.scout.sourceCount > 0 && !["error", "failed"].includes(status));
+  return ["healthy", "ok", "ready", "success"].includes(status) || Boolean(state.scout.sourceCount > 0 && !["error", "failed"].includes(status));
 }
 
 function scoutStatusSentence() {
-  if (state.mode === "demo") return `Sample Scout checked ${timeAgo(state.scout.lastRunAt)}.`;
+  if (state.mode === "local" && state.scout.lastRunAt) return `Scout checked ${timeAgo(state.scout.lastRunAt)} and will check again while Job Garden stays open.`;
+  if (state.mode === "local") return "Scout is ready to check two no-key job feeds now.";
   if (state.scout.status === "sleeping") return "Scout is respecting quiet hours and will resume in the morning.";
   if (state.scout.lastRunAt) return `Scout checked ${timeAgo(state.scout.lastRunAt)}${state.scout.lastNewCount ? ` and found ${state.scout.lastNewCount} new` : ""}.`;
   if (state.scout.sourceCount > 0 && !state.scout.apiConfigured) return "Scout is ready with no-key feeds; Adzuna can add faster UK coverage.";
@@ -1463,6 +1565,30 @@ function startPolling() {
   state.pollTimer = window.setInterval(() => {
     if (!document.hidden && navigator.onLine) refreshData({ silent: true });
   }, 120000);
+}
+
+function startLocalScout() {
+  window.clearInterval(state.pollTimer);
+  window.setTimeout(() => {
+    if (!document.hidden && navigator.onLine) runLocalScout({ silent: true });
+  }, 900);
+  state.pollTimer = window.setInterval(() => {
+    if (!document.hidden && navigator.onLine) runLocalScout({ silent: true });
+  }, 15 * 60000);
+}
+
+function saveLocalWorkspace() {
+  if (state.mode !== "local") return;
+  const payload = {
+    profile: state.profile,
+    preferences: state.preferences,
+    jobs: state.jobs.slice(0, 500),
+    sources: state.sources,
+    activity: state.activity.slice(0, 250),
+    scout: state.scout,
+    generatedAt: new Date().toISOString(),
+  };
+  try { localStorage.setItem(KEYS.workspace, JSON.stringify(payload)); } catch { renderNoop(); }
 }
 
 function saveCache(payload) {

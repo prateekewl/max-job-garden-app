@@ -1,4 +1,4 @@
-const CACHE_NAME = "max-job-garden-v20260720-5";
+const CACHE_NAME = "max-job-garden-v20260720-6";
 const APP_SHELL = [
   "./",
   "./index.html",
