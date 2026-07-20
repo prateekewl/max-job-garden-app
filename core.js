@@ -20,19 +20,16 @@ export const DEFAULT_PREFERENCES = Object.freeze({
     "Service Delivery Lead",
     "Client Services Manager",
     "Client Operations Manager",
-    "Customer Support Operations Manager",
     "Account Manager",
     "Implementation Manager",
+    "Implementation Consultant",
     "Onboarding Manager",
     "Supplier Engagement Manager",
     "Customer Experience Manager",
     "Service Operations Manager",
-    "Operations Manager",
-    "Operations Executive",
+    "Customer Operations Manager",
     "Client Onboarding Manager",
-    "Project Coordinator",
-    "Programme Coordinator",
-    "Relationship Manager",
+    "Client Relationship Manager",
   ],
   includeTerms: [
     "client relationship",
@@ -108,6 +105,18 @@ const ROLE_TERMS = [
   "process improvement",
   "operations",
   "service manager",
+];
+
+const HARD_TITLE_MISMATCH = /\b(?:executive|personal|administrative) assistant\b|\bassistant to\b|\bproject coordinator\b|\bprogramme coordinator\b|\bprogram coordinator\b|\bai operations\b|\bmarketing operations\b|\b(?:developer|engineer|architect|designer)\b|\btechnical support\b|\bhelp\s?desk\b|\bcustomer (?:service|support) (?:advisor|agent|representative)\b|\b(?:sales|channel|distribution|commercial|advertising|affiliate) account manager\b|\baccount executive\b|\bbusiness development\b/;
+const PRIMARY_ROLE_TITLE = /\b(?:customer|client) success (?:manager|lead|team lead|executive)\b|\bservice delivery (?:manager|lead)\b|\bclient services? (?:manager|lead)\b|\b(?:manager|lead)[, -]+client services?\b|\bclient operations (?:manager|lead)\b|\bcustomer operations (?:manager|lead)\b|\bimplementation (?:manager|consultant|lead)\b|\bonboarding (?:manager|consultant|lead)\b|\b(?:manager|lead)\b.*\bclient onboarding\b|\bcustomer experience (?:manager|lead)\b|\bclient relationship manager\b/;
+const ADJACENT_ROLE_TITLE = /\baccount manager\b|\bsupplier (?:engagement|relationship) manager\b|\bvendor relationship manager\b|\bworkforce (?:operations|planning) (?:manager|lead)\b|\bservice operations (?:manager|lead)\b|\bcustomer (?:support|service) (?:manager|lead|team lead)\b|\bteam (?:leader|lead)\b.*\bcustomer (?:support|service|operations)\b/;
+const CLIENT_DELIVERY_EVIDENCE = [
+  /\bclient(?:s|'s)?\b|\bcustomer(?:s|'s)?\b/,
+  /\bservice delivery\b|\bservice level\b|\bsla\b/,
+  /\bstakeholder\b|\brelationship management\b|\btrusted advisor\b/,
+  /\bonboarding\b|\bimplementation\b|\bcustomer lifecycle\b/,
+  /\bescalation\b|\bissue resolution\b|\bproblem solving\b/,
+  /\bprocess improvement\b|\bcontinuous improvement\b|\boperational improvement\b/,
 ];
 
 const STOP_WORDS = new Set([
@@ -193,6 +202,9 @@ export function normaliseJob(input = {}) {
 export function isMaxLocationEligible(input = {}) {
   const job = normaliseJob(input);
   const location = String(job.location || "").toLowerCase().replace(/[·|/]/g, " ").replace(/\s+/g, " ").trim();
+  const body = String(job.description || "").toLowerCase();
+  const explicitCountryRestriction = body.match(/\b(?:must (?:live|reside|be based)|based|work) (?:in|from) (germany|united states|usa|canada|australia|india)\b/);
+  if (explicitCountryRestriction && !/\bunited kingdom\b|\buk\b/.test(explicitCountryRestriction[0])) return false;
   if (/\bglasgow\b|\bedinburgh\b|\brenfrewshire\b/.test(location)) return true;
 
   const isRemote = job.workPattern === "remote" || /\bremote\b|work from home|home-based/.test(location);
@@ -204,8 +216,47 @@ export function isMaxLocationEligible(input = {}) {
 
 export function isMaxRoleEligible(input = {}) {
   const title = String(input.title || "").toLowerCase();
-  if (/\bsales account manager\b|\bchannel account manager\b|\bdistribution accounts? manager\b|\btechnical account manager\b/.test(title)) return false;
-  return /\bcustomer success (?:manager|lead|team lead|executive)\b|\bclient success (?:manager|lead)\b|\bservice delivery (?:manager|lead)\b|\bservice operations (?:manager|lead|coordinator)\b|\bsupport services manager\b|\bclient services manager\b|\bmanager,? client services\b|\bclient operations (?:manager|lead|coordinator|executive)\b|\bcustomer operations (?:manager|lead|coordinator|executive)\b|\boperations (?:manager|lead|coordinator|executive)\b|\bcustomer (?:support|service)(?: & technical support)? (?:manager|lead|team lead|advisor)\b|\bteam (?:leader|lead).*\bcustomer (?:support|service|operations)\b|\baccount manager\b|\bimplementation (?:manager|consultant|lead|coordinator)\b|\bonboarding (?:manager|consultant|lead|coordinator)\b|\bmanager\b.*\bclient onboarding\b|\bsupplier (?:engagement|relationship) manager\b|\bcustomer experience manager\b|\b(?:client )?relationship manager\b|\bproject coordinator\b|\bprogramme coordinator\b|\bprogram coordinator\b|\bclient administrator\b/.test(title);
+  const body = `${title} ${String(input.description || "").toLowerCase()}`;
+  if (!isMaxSearchEligible(input)) return false;
+
+  // Exact customer/client delivery families are backed by Max's recent CV evidence.
+  if (PRIMARY_ROLE_TITLE.test(title)) {
+    return true;
+  }
+
+  // Adjacent roles need evidence of client ownership and service delivery, not a
+  // coincidental word such as “operations” or “account”.
+  const evidenceCount = CLIENT_DELIVERY_EVIDENCE.filter((pattern) => pattern.test(body)).length;
+  if (/\baccount manager\b/.test(title) && isSalesLedRole(body)) return false;
+  if (/\bsupplier|\bvendor/.test(title) && /\bprocurement\b|\bsupply chain\b|\bcategory management\b/.test(body)) return false;
+  if (/\bcustomer (?:support|service)\b|\bteam (?:leader|lead)\b.*\bcustomer (?:support|service|operations)\b/.test(title)) return false;
+  return evidenceCount >= 2 && !/\btechnical account manager\b|\bstrategic account manager\b|\bbusiness relationship manager\b/.test(title);
+}
+
+export function isMaxSearchEligible(input = {}) {
+  const title = String(input.title || "").toLowerCase().replace(/\s+/g, " ").trim();
+  if (!title || HARD_TITLE_MISMATCH.test(title) || hasHardCvRequirementMismatch(input)) return false;
+  if (/\btechnical account manager\b|\bstrategic account manager\b|\bkey account manager\b|\bbusiness relationship manager\b/.test(title)) return false;
+  return PRIMARY_ROLE_TITLE.test(title) || ADJACENT_ROLE_TITLE.test(title);
+}
+
+function hasHardCvRequirementMismatch(input = {}) {
+  const title = String(input.title || "").toLowerCase();
+  const body = `${title} ${String(input.description || "").toLowerCase()}`;
+  if (/\b(?:arabic|french|spanish|italian|dutch|portuguese|polish|swedish|norwegian|danish) speaking\b/.test(title)) return true;
+  if (/\b(?:arabic|french|spanish|italian|dutch|portuguese|polish|swedish|norwegian|danish) (?:language )?(?:skills?|fluency|proficiency)\b.{0,80}\b(?:required|requirement|essential|mandatory)\b/.test(body)) return true;
+  if (/\bonboarding\b/.test(title) && /\b(?:anti[- ]money laundering|aml|kyc|fca|cass|fatca|financial crime)\b/.test(body)) return true;
+  if (/\bsupplier|\bvendor/.test(title) && /\bprocurement\b|\bsupply chain\b|\bcategory management\b/.test(body)) return true;
+  if (/\bcustomer success\b/.test(title) && /\btechnical degree\b/.test(body) && /\b(?:required|requirements?|looking for)\b/.test(body)) return true;
+  return false;
+}
+
+function isSalesLedRole(body = "") {
+  const signals = [
+    /\bnew business\b/, /\bprospect(?:ing)?\b/, /\bcold call(?:ing)?\b/, /\bsales quota\b/,
+    /\b(?:sales|revenue) target\b/, /\bclose deals?\b/, /\bsales pipeline\b/, /\bcommission\b/,
+  ];
+  return signals.filter((pattern) => pattern.test(body)).length >= 2;
 }
 
 export function maxLocationRank(input = {}) {

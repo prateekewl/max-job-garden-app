@@ -19,6 +19,7 @@ import {
   formatRelativeDate,
   isMaxLocationEligible,
   isMaxRoleEligible,
+  isMaxSearchEligible,
   localDateKey,
   maxLocationRank,
   nextActionFor,
@@ -389,11 +390,11 @@ function renderDiscover(jobs) {
   const headline = recommendedMode ? "Best matches for Max" : "Find your next role";
   const intro = recommendedMode
     ? `A shorter list of fresh roles with the strongest overlap with Max’s experience. The score is a guide, not a gate.`
-    : `Search ${counts.week} current roles from ${checkedSources} sources. Browse by place, title, skill, or company—CV scoring never hides the wider search.`;
+    : `Search ${counts.week} fresh roles from ${checkedSources} sources, pre-filtered to career paths supported by Max’s CV. Search by place, title, skill, or company.`;
   const emptyTitle = recommendedMode ? "No strong matches in this view" : "No jobs match those filters";
   const emptyBody = recommendedMode
-    ? "Browse all jobs to explore roles outside the automatic shortlist."
-    : "Try a shorter keyword, another location, or the full seven-day window.";
+    ? "Search the wider CV-matched role pool to find more credible options."
+    : "Try a shorter keyword, another location, or the full seven-day window. Unrelated professions are filtered out.";
 
   return `
     <div class="page-stack">
@@ -403,7 +404,7 @@ function renderDiscover(jobs) {
           <div class="section-actions">${recommendedMode && counts.unseen ? `<button class="button quiet small" type="button" data-action="mark-all-seen"><svg aria-hidden="true"><use href="#icon-check"></use></svg>Mark seen</button>` : ""}<button class="button quiet small" type="button" data-action="run-scout"><svg aria-hidden="true"><use href="#icon-refresh"></use></svg>Check now</button></div>
         </div>
         <div class="discover-modes" role="tablist" aria-label="Choose job discovery mode">
-          <button type="button" role="tab" aria-selected="${!recommendedMode}" class="discover-mode ${!recommendedMode ? "active" : ""}" data-search-mode="all"><span><strong>Browse all jobs</strong><small>Every current opportunity</small></span><b>${state.searchIndex.length}</b></button>
+          <button type="button" role="tab" aria-selected="${!recommendedMode}" class="discover-mode ${!recommendedMode ? "active" : ""}" data-search-mode="all"><span><strong>Search matched roles</strong><small>CV-backed career paths</small></span><b>${decoratedSearchJobs().length}</b></button>
           <button type="button" role="tab" aria-selected="${recommendedMode}" class="discover-mode ${recommendedMode ? "active" : ""}" data-search-mode="recommended"><span><strong>Best matches</strong><small>Ranked against Max’s CV</small></span><b>${trackedCandidates.filter((job) => jobAge(job) <= state.feedFreshnessDays).length}</b></button>
         </div>
         <div class="discover-search-panel">
@@ -419,7 +420,7 @@ function renderDiscover(jobs) {
           </div>
           ${recommendedMode ? "" : `<div class="filter-group"><span class="filter-label">Location</span><div class="filter-strip location-strip" role="group" aria-label="Filter by location">${locationChip("all", "All", counts.week)}${locationChip("glasgow", "Glasgow & nearby", counts.glasgow)}${locationChip("remote-uk", "Remote UK", counts.remoteUk)}${locationChip("edinburgh", "Edinburgh", counts.edinburgh)}${locationChip("other-remote", "Other remote", Math.max(0, counts.remote - counts.remoteUk))}</div></div>`}
           <div class="filter-group"><span class="filter-label">Posted</span><div class="filter-strip" role="group" aria-label="Filter by date">${filterChip("week", `Past ${state.feedFreshnessDays} days`, counts.week)}${filterChip("today", "Today", counts.today)}${filterChip("three-days", "Past 72 hours", counts.threeDays)}${recommendedMode ? `${filterChip("remote", "Remote", counts.remote)}${filterChip("saved", "Saved", counts.saved)}` : ""}</div></div>
-          ${recommendedMode ? "" : `<div class="keyword-suggestions" aria-label="Suggested searches"><span>Popular searches</span>${["operations manager", "service delivery", "customer success", "onboarding", "project coordinator"].map((term) => `<button type="button" data-search-query="${escapeHtml(term)}">${escapeHtml(term)}</button>`).join("")}</div>`}
+          ${recommendedMode ? "" : `<div class="keyword-suggestions" aria-label="Suggested searches"><span>Popular searches</span>${["client services", "service delivery", "customer success", "onboarding", "account manager"].map((term) => `<button type="button" data-search-query="${escapeHtml(term)}">${escapeHtml(term)}</button>`).join("")}</div>`}
         </div>
         <div class="results-line"><span><strong>${filtered.length}</strong> opportunit${filtered.length === 1 ? "y" : "ies"}${!recommendedMode && filtered.length > visible.length ? ` · showing ${visible.length}` : ""}</span><span>${state.scout.lastRunAt ? `Updated ${timeAgo(state.scout.lastRunAt)}` : "Updates automatically"}</span></div>
         ${visible.length ? `<div class="job-grid">${visible.map((job) => renderJobCard(job, { broad: !recommendedMode })).join("")}</div>${!recommendedMode && visible.length < filtered.length ? `<div class="load-more"><button class="button quiet" type="button" data-action="load-more">Show ${Math.min(60, filtered.length - visible.length)} more</button></div>` : ""}` : renderEmpty("search", emptyTitle, emptyBody, recommendedMode ? "Search all sources" : "Clear search", recommendedMode ? "show-all-search" : "clear-filters")}
@@ -1571,7 +1572,7 @@ function decoratedSearchJobs() {
   const trackedById = new Map(state.jobs.map((job) => [job.id, job]));
   const trackedByUrl = new Map(state.jobs.filter((job) => job.url).map((job) => [job.url, job]));
   const jobs = state.searchIndex.map((job) => trackedById.get(job.id) || trackedByUrl.get(job.url) || job);
-  return decorateJobs(uniqueJobs(jobs), state.preferences, state.jobs);
+  return decorateJobs(uniqueJobs(jobs).filter(isMaxSearchEligible), state.preferences, state.jobs);
 }
 
 function findViewJob(jobId) {
