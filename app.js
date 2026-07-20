@@ -108,7 +108,7 @@ async function init() {
     loadDemo();
     return;
   }
-  setAccessStatus("Website deployed ✓ · Google Sheet connection is next", "success");
+  setAccessStatus("Open your private Job Garden link to continue.", "");
 }
 
 function bindStaticEvents() {
