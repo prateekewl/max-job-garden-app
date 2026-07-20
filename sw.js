@@ -1,4 +1,4 @@
-const CACHE_NAME = "max-job-garden-v20260720-13";
+const CACHE_NAME = "max-job-garden-v20260720-14";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -13,7 +13,7 @@ const APP_SHELL = [
   "./assets/garden-mark-192.png",
   "./assets/garden-mark-512.png",
   "./assets/garden-companions.jpg",
-  "./assets/jspdf.umd.min.js"
+  "./assets/pdf-lib.min.js"
 ];
 
 self.addEventListener("install", (event) => {

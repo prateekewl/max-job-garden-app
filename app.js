@@ -34,7 +34,7 @@ import {
   uniqueList,
 } from "./core.js";
 import { maxProfile } from "./demo-data.js";
-import { downloadTailoredCv } from "./pdf.js";
+import { buildExactCvTailoring, downloadTailoredCv, extractPrivateCvTemplate, withoutPrivateCvTemplate } from "./pdf.js";
 
 const KEYS = Object.freeze({
   access: "mjg:access",
@@ -44,6 +44,7 @@ const KEYS = Object.freeze({
   seenIds: "mjg:seen-ids",
   personHint: "mjg:person-hint",
   theme: "mjg:theme",
+  cvTemplate: "mjg:cv-template:v1",
 });
 
 const VIEW_META = Object.freeze({
@@ -82,6 +83,7 @@ const state = {
   sort: "location",
   selectedJobId: "",
   cvJobId: "",
+  cvTemplateBase64: "",
   messageKind: "recruiter",
   resumeCvAfterProfile: false,
   installPrompt: null,
@@ -189,6 +191,7 @@ function loadLocalWorkspace() {
   state.mode = "local";
   state.person = { id: "max", name: "Max", role: "candidate" };
   state.profile = saved.profile || structuredClone(maxProfile);
+  state.cvTemplateBase64 = localStorage.getItem(KEYS.cvTemplate) || "";
   const storedPreferences = normalisePreferences(saved.preferences || DEFAULT_PREFERENCES);
   state.preferences = normalisePreferences({
     ...storedPreferences,
@@ -213,8 +216,11 @@ function hydrate(payload) {
   state.mode = "private";
   state.person = payload.person || { id: localStorage.getItem(KEYS.personHint) || "max", name: "Max", role: "candidate" };
   state.profile = payload.profile || {};
+  const privateTemplate = extractPrivateCvTemplate(payload.jobs || []);
+  state.cvTemplateBase64 = privateTemplate || localStorage.getItem(KEYS.cvTemplate) || "";
+  if (privateTemplate) localStorage.setItem(KEYS.cvTemplate, privateTemplate);
   state.preferences = normalisePreferences(payload.preferences || DEFAULT_PREFERENCES);
-  state.jobs = uniqueJobs([...(payload.jobs || []), ...(payload.history || [])]).map(normaliseJob);
+  state.jobs = uniqueJobs(withoutPrivateCvTemplate([...(payload.jobs || []), ...(payload.history || [])])).map(normaliseJob);
   state.searchIndex = (payload.searchJobs || []).map(normaliseJob);
   state.sources = payload.sources || [];
   state.people = payload.people || [];
@@ -515,7 +521,7 @@ function renderCv(jobs) {
   const selected = eligible.find((job) => job.id === state.cvJobId) || eligible[0] || jobs[0];
   if (selected) state.cvJobId = selected.id;
   const profile = state.profile || {};
-  const tailoring = selected ? buildTailoring(selected, profile) : null;
+  const tailoring = selected ? buildExactCvTailoring(selected, profile) : null;
   const message = selected ? buildMessage(state.messageKind, selected, profile) : "Choose a job to prepare a message.";
 
   return `
@@ -524,28 +530,28 @@ function renderCv(jobs) {
         <aside class="cv-sidebar">
           <article class="profile-card">
             <div class="profile-card-top"><span class="avatar">${escapeHtml(initials(profile.name || "Max"))}</span><div><h2>${escapeHtml(profile.name || "Max’s CV profile")}</h2><p>${escapeHtml(profile.headline || "Add a headline in Settings")}</p></div></div>
-            <span class="cv-storage-status ${profile.roles?.length ? "ready" : ""}">${profile.roles?.length ? `${state.mode === "private" ? "Saved CV connected" : "CV stored on this device"} · ${profile.roles.length} role${profile.roles.length === 1 ? "" : "s"}` : "Employment history needed"}</span>
+            <span class="cv-storage-status ${state.cvTemplateBase64 ? "ready" : ""}">${state.cvTemplateBase64 ? "Exact master PDF connected" : "Open Max’s private link to connect the master PDF"}</span>
             <div class="profile-facts">
               ${profile.location ? profileFact("map", profile.location) : ""}
               ${profile.email ? profileFact("mail", profile.email) : ""}
               ${profile.phone ? profileFact("phone", profile.phone) : ""}
               ${profile.languages?.length ? profileFact("sparkles", profile.languages.join(" · ")) : ""}
             </div>
-            <button class="button quiet full-button" type="button" data-view="settings" data-settings-section="profile" style="margin-top:16px"><svg aria-hidden="true"><use href="#icon-edit"></use></svg>Edit CV facts</button>
+            <button class="button quiet full-button" type="button" data-view="settings" data-settings-section="profile" style="margin-top:16px"><svg aria-hidden="true"><use href="#icon-edit"></use></svg>Edit matching profile</button>
           </article>
           <article class="cv-job-card">
             <h3>Tailor for a job</h3><p>Choose the application. Dates, employers, titles, and responsibilities remain factual.</p>
             <select class="job-picker" id="cvJobPicker" aria-label="Choose a job for the CV">${eligible.map((job) => `<option value="${escapeHtml(job.id)}" ${job.id === selected?.id ? "selected" : ""}>${escapeHtml(job.company)} — ${escapeHtml(job.title)}</option>`).join("")}</select>
             <div class="cv-actions">
-              ${!selected ? `<button class="button primary full-button" type="button" data-view="discover"><svg aria-hidden="true"><use href="#icon-search"></use></svg>Choose a job first</button>` : profile.roles?.length ? `<button class="button primary full-button" type="button" data-action="download-cv"><svg aria-hidden="true"><use href="#icon-download"></use></svg>Download matched PDF</button>` : `<button class="button primary full-button" type="button" data-action="setup-cv"><svg aria-hidden="true"><use href="#icon-plus"></use></svg>Add employment history</button><p class="cv-unlock-note">The PDF needs at least one previous role. Add it once and every matched download unlocks.</p>`}
+              ${!selected ? `<button class="button primary full-button" type="button" data-view="discover"><svg aria-hidden="true"><use href="#icon-search"></use></svg>Choose a job first</button>` : state.cvTemplateBase64 ? `<button class="button primary full-button" type="button" data-action="download-cv"><svg aria-hidden="true"><use href="#icon-download"></use></svg>Download exact-format PDF</button>` : `<p class="cv-unlock-note">The exact master PDF is available automatically from Max’s private Job Garden link.</p>`}
               ${selected?.url ? `<a class="button quiet full-button" href="${escapeHtml(selected.url)}" target="_blank" rel="noreferrer"><svg aria-hidden="true"><use href="#icon-external"></use></svg>Open job advert</a>` : ""}
             </div>
           </article>
         </aside>
         <div class="cv-main">
           <article class="cv-preview-card">
-            <p class="eyebrow">Emphasis preview</p><h3>${selected ? `For ${escapeHtml(selected.title)} at ${escapeHtml(selected.company)}` : "Choose a job"}</h3><p>The download changes emphasis and ordering—not Max’s employment facts.</p>
-            ${tailoring ? `<div class="tailoring-grid"><div class="tailoring-side"><span>Core CV</span><h4>${escapeHtml(tailoring.sourceHeadline)}</h4><p>${escapeHtml(profile.summary || "Client operations, service delivery, workforce coordination, stakeholder communication, and issue resolution.")}</p></div><div class="tailoring-side after"><span>For this role</span><h4>${escapeHtml(tailoring.headline)}</h4><p>${escapeHtml(tailoring.summary)}</p></div></div><div class="keyword-cloud">${tailoring.keywords.map((word) => metaPill(titleCase(word), "good")).join("")}</div><div class="truth-note"><svg aria-hidden="true"><use href="#icon-check"></use></svg><span>The PDF keeps employers, dates, titles, qualifications, tools, and the substance of every responsibility unchanged.</span></div>` : renderEmpty("file", "No active job selected", "Save or add a role, then return here to prepare the application.")}
+            <p class="eyebrow">Exact PDF preview</p><h3>${selected ? `For ${escapeHtml(selected.title)} at ${escapeHtml(selected.company)}` : "Choose a job"}</h3><p>The attached master design stays intact. Only its two profile paragraphs and the order of Max’s existing key skills change.</p>
+            ${tailoring ? `<div class="tailoring-grid"><div class="tailoring-side"><span>Unchanged headline</span><h4>${escapeHtml(tailoring.headline)}</h4><p>Same contact details, layout, typography, employment history, dates, qualifications, tools, languages and education.</p></div><div class="tailoring-side after"><span>Matched wording</span><h4>Small, truthful emphasis change</h4><p>${escapeHtml(tailoring.summary)}</p></div></div><div class="keyword-cloud">${tailoring.keywords.map((word) => metaPill(word, "good")).join("")}</div><div class="truth-note"><svg aria-hidden="true"><use href="#icon-check"></use></svg><span>No job title, employer, date, qualification, tool or responsibility is invented or rewritten.</span></div>` : renderEmpty("file", "No active job selected", "Save or add a role, then return here to prepare the application.")}
           </article>
           <article class="message-card">
             <h3>Human, specific messages</h3><p>Short starting points for a recruiter, one follow-up, or an interview thank-you.</p>
@@ -770,7 +776,7 @@ function renderJobDialog(jobId) {
     </div>
     <div class="job-decision-bar">
       <div class="job-decision-secondary">${!closeStatus ? `<button class="button quiet" type="button" data-job-action="toggle-skip" data-job-id="${escapeHtml(job.id)}">Dismiss</button>` : `<button class="button quiet" type="button" data-job-action="restore" data-job-id="${escapeHtml(job.id)}">Restore</button>`}${canSave ? `<button class="button quiet" type="button" data-job-action="save" data-job-id="${escapeHtml(job.id)}"><svg aria-hidden="true"><use href="#icon-sprout"></use></svg>Save</button>` : ""}</div>
-      <div class="job-decision-primary">${canFollowUp ? `<button class="button quiet" type="button" data-job-action="copy-followup" data-job-id="${escapeHtml(job.id)}"><svg aria-hidden="true"><use href="#icon-copy"></use></svg>Copy follow-up</button>` : ""}<button class="button quiet" type="button" data-job-action="download-matched-cv" data-job-id="${escapeHtml(job.id)}"><svg aria-hidden="true"><use href="#icon-download"></use></svg>Matched CV</button>${job.url ? `<a class="button quiet" href="${escapeHtml(job.url)}" target="_blank" rel="noreferrer" data-action="advert-opened" data-job-id="${escapeHtml(job.id)}"><svg aria-hidden="true"><use href="#icon-external"></use></svg>Live advert</a>` : ""}${canPrepare ? `<button class="button lime" type="button" data-job-action="prepare" data-job-id="${escapeHtml(job.id)}"><svg aria-hidden="true"><use href="#icon-file"></use></svg>Start application</button>` : ""}${canApply ? `<button class="button lime" type="button" data-job-action="applied" data-job-id="${escapeHtml(job.id)}"><svg aria-hidden="true"><use href="#icon-check"></use></svg>Mark applied</button>` : ""}</div>
+      <div class="job-decision-primary">${canFollowUp ? `<button class="button quiet" type="button" data-job-action="copy-followup" data-job-id="${escapeHtml(job.id)}"><svg aria-hidden="true"><use href="#icon-copy"></use></svg>Copy follow-up</button>` : ""}<button class="button quiet" type="button" data-job-action="download-matched-cv" data-job-id="${escapeHtml(job.id)}"><svg aria-hidden="true"><use href="#icon-download"></use></svg>Download matched CV</button>${job.url ? `<a class="button quiet" href="${escapeHtml(job.url)}" target="_blank" rel="noreferrer" data-action="advert-opened" data-job-id="${escapeHtml(job.id)}"><svg aria-hidden="true"><use href="#icon-external"></use></svg>Live advert</a>` : ""}${canPrepare ? `<button class="button lime" type="button" data-job-action="prepare" data-job-id="${escapeHtml(job.id)}"><svg aria-hidden="true"><use href="#icon-file"></use></svg>Start application</button>` : ""}${canApply ? `<button class="button lime" type="button" data-job-action="applied" data-job-id="${escapeHtml(job.id)}"><svg aria-hidden="true"><use href="#icon-check"></use></svg>Mark applied</button>` : ""}</div>
     </div>
   </div>`;
 }
@@ -1001,7 +1007,7 @@ async function handleAction(action) {
   } else if (action === "copy-message") {
     await copyMessage();
   } else if (action === "download-cv") {
-    downloadCv();
+    await downloadCv();
   } else if (action === "setup-cv") {
     state.resumeCvAfterProfile = true;
     navigate("settings", "profile");
@@ -1028,14 +1034,11 @@ async function handleJobAction(action, jobId) {
     showToast("Follow-up copied", "Personalise the name or one detail before sending.", "success");
   } else if (action === "download-matched-cv") {
     state.cvJobId = job.id;
-    if (!state.profile.roles?.length) {
-      state.resumeCvAfterProfile = true;
-      jobDialog.close();
-      navigate("settings", "profile");
-      showToast("Connect Max’s CV once", "Add employment history here, then Job Garden will return to this matched CV.");
+    if (!state.cvTemplateBase64) {
+      showToast("Master CV not connected", "Open Max’s private Job Garden link once on this device, then try again.", "error");
       return;
     }
-    downloadCvForJob(job);
+    await downloadCvForJob(job);
     return;
   } else if (action === "toggle-skip") {
     document.querySelector("#skipPanel")?.classList.toggle("open");
@@ -1478,13 +1481,14 @@ function setAccessStatus(message, tone) {
 }
 
 function lockDevice() {
-  [KEYS.access, KEYS.api, KEYS.cache, KEYS.workspace, KEYS.personHint, KEYS.seenIds].forEach((key) => localStorage.removeItem(key));
+  [KEYS.access, KEYS.api, KEYS.cache, KEYS.workspace, KEYS.personHint, KEYS.seenIds, KEYS.cvTemplate].forEach((key) => localStorage.removeItem(key));
   window.clearInterval(state.pollTimer);
   accountDialog?.close();
   state.jobs = [];
   state.activity = [];
   state.preferences = normalisePreferences(DEFAULT_PREFERENCES);
   state.profile = structuredClone(maxProfile);
+  state.cvTemplateBase64 = "";
   state.scout = { status: "ready", sourceCount: 1 };
   state.connected = true;
   render();
@@ -1541,17 +1545,17 @@ async function copyMessage() {
   showToast("Message copied", "Personalise the name and one specific detail before sending.", "success");
 }
 
-function downloadCv() {
+async function downloadCv() {
   const selected = decoratedJobs().find((job) => job.id === state.cvJobId);
   if (!selected) return;
-  downloadCvForJob(selected);
+  await downloadCvForJob(selected);
 }
 
-function downloadCvForJob(job) {
+async function downloadCvForJob(job) {
   try {
-    downloadTailoredCv(job, state.profile);
+    await downloadTailoredCv(job, state.profile, state.cvTemplateBase64);
     postAction("cv_downloaded", { jobId: job.id }, { silent: true, refresh: false });
-    showToast("Matched CV downloaded", "Employment facts remain unchanged.", "success");
+    showToast("Exact-format CV downloaded", "Only the two profile paragraphs and ordering of existing skills changed.", "success");
   } catch (error) {
     showToast("CV needs attention", error.message, "error");
   }

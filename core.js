@@ -451,7 +451,7 @@ export function buildTailoring(jobInput, profile = {}) {
     ...ROLE_TERMS.filter((term) => sourceText.includes(term)),
     ...skills.filter((skill) => sourceText.includes(String(skill).toLowerCase())),
   ]).slice(0, 10);
-  const headline = chooseHeadline(sourceText, profile.headline || "Client Operations & Service Delivery");
+  const headline = chooseHeadline(String(job.title || "").toLowerCase(), "") || chooseHeadline(sourceText, profile.headline || "Client Operations & Service Delivery");
   const proof = evidenceTerms.length ? humanList(evidenceTerms.slice(0, 4).map(titleCase)) : "client-facing service delivery, stakeholder communication, issue resolution, and process improvement";
   const summary = `${headline} professional with experience across ${proof}. Based in ${profile.location || "Glasgow"} and experienced in keeping client needs, operational detail, and cross-functional follow-through visible across remote and international teams.`;
   return { headline, summary, keywords: evidenceTerms, sourceHeadline: profile.headline || "Client Operations & Service Delivery" };
@@ -630,6 +630,7 @@ function chooseHeadline(text, fallback) {
   if (/customer success|client success/.test(text)) return "Customer Success & Client Operations";
   if (/account manager|account management|relationship/.test(text)) return "Client Relationship & Account Management";
   if (/service delivery|service manager/.test(text)) return "Service Delivery & Client Operations";
+  if (/operations excellence|process improvement|client operations/.test(text)) return "Client Operations & Process Improvement";
   return fallback;
 }
 
