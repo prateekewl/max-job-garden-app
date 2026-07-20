@@ -42,7 +42,7 @@ export const DEFAULT_PREFERENCES = Object.freeze({
     "field sales",
     "security clearance required",
   ],
-  preferredLocations: ["Glasgow", "Renfrewshire", "Scotland"],
+  preferredLocations: ["Glasgow", "Renfrewshire", "Edinburgh"],
   workPatterns: ["remote", "hybrid"],
   contractTypes: ["permanent", "full_time"],
   mustHaveBenefits: ["annual leave", "sick pay", "pension"],
@@ -177,6 +177,23 @@ export function normaliseJob(input = {}) {
     contactEmail: String(input.contactEmail || ""),
     actor: String(input.actor || ""),
   };
+}
+
+export function isMaxLocationEligible(input = {}) {
+  const job = normaliseJob(input);
+  const location = String(job.location || "").toLowerCase().replace(/[·|/]/g, " ").replace(/\s+/g, " ").trim();
+  if (/\bglasgow\b|\bedinburgh\b|\brenfrewshire\b/.test(location)) return true;
+
+  const isRemote = job.workPattern === "remote" || /\bremote\b|work from home|home-based/.test(location);
+  if (!isRemote) return false;
+
+  if (/^(remote|anywhere|worldwide|global)$/.test(location)) return true;
+  return /\bunited kingdom\b|\buk\b|\beurope\b|\bemea\b|\bworldwide\b|\banywhere\b|\bglobal\b/.test(location);
+}
+
+export function isMaxRoleEligible(input = {}) {
+  const title = String(input.title || "").toLowerCase();
+  return /\bcustomer success manager\b|\bclient success manager\b|\bservice delivery manager\b|\bclient services manager\b|\bclient operations manager\b|\bcustomer operations manager\b|\baccount manager\b|\bimplementation manager\b|\bimplementation consultant\b|\bsupplier engagement manager\b|\bcustomer experience manager\b/.test(title);
 }
 
 export function normaliseStatus(value = "new") {

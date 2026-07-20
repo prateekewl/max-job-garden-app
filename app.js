@@ -16,6 +16,8 @@ import {
   formatDateTime,
   formatMoney,
   formatRelativeDate,
+  isMaxLocationEligible,
+  isMaxRoleEligible,
   localDateKey,
   nextActionFor,
   normaliseJob,
@@ -29,7 +31,7 @@ import {
   titleCase,
   uniqueList,
 } from "./core.js";
-import { demoProfile } from "./demo-data.js";
+import { maxProfile } from "./demo-data.js";
 import { downloadTailoredCv } from "./pdf.js";
 
 const KEYS = Object.freeze({
@@ -96,12 +98,6 @@ async function init() {
   applyTheme(localStorage.getItem(KEYS.theme) || "system");
   registerServiceWorker();
 
-  const hasPrivateAccess = Boolean(localStorage.getItem(KEYS.access) && localStorage.getItem(KEYS.api));
-
-  if (hasPrivateAccess) {
-    await connectPrivate();
-    return;
-  }
   loadLocalWorkspace();
 }
 
@@ -182,22 +178,21 @@ async function connectPrivate() {
 
 function loadLocalWorkspace() {
   const saved = loadJson(KEYS.workspace, {});
-  const personHint = new URLSearchParams(window.location.search).get("for") || localStorage.getItem(KEYS.personHint) || "max";
-  const isPrateek = String(personHint).toLowerCase() === "prateek";
   state.mode = "local";
-  state.person = isPrateek
-    ? { id: "prateek", name: "Prateek", role: "supporter" }
-    : { id: "max", name: "Max", role: "candidate" };
-  state.profile = saved.profile || structuredClone(demoProfile);
-  state.preferences = normalisePreferences(saved.preferences || DEFAULT_PREFERENCES);
-  state.jobs = (saved.jobs || []).map(normaliseJob);
-  state.sources = saved.sources || [
-    { id: "remotive", name: "Remotive", type: "api", endpoint: "https://remotive.com/api/remote-jobs", enabled: true, status: "Ready" },
-    { id: "arbeitnow", name: "Arbeitnow Europe", type: "api", endpoint: "https://www.arbeitnow.com/api/job-board-api", enabled: true, status: "Ready" },
-  ];
-  state.people = [{ id: "max", name: "Max", role: "Candidate" }, { id: "prateek", name: "Prateek", role: "Supporter" }];
+  state.person = { id: "max", name: "Max", role: "candidate" };
+  state.profile = saved.profile || structuredClone(maxProfile);
+  const storedPreferences = normalisePreferences(saved.preferences || DEFAULT_PREFERENCES);
+  state.preferences = normalisePreferences({
+    ...storedPreferences,
+    preferredLocations: uniqueList([...storedPreferences.preferredLocations.filter((place) => String(place).toLowerCase() !== "scotland"), "Edinburgh"]),
+  });
+  state.jobs = (saved.jobs || [])
+    .map(normaliseJob)
+    .filter((job) => !(["Remotive", "Arbeitnow"].includes(job.source) || / careers$/i.test(job.source)) || (isMaxLocationEligible(job) && isMaxRoleEligible(job)));
+  state.sources = [{ id: "job-garden-curated", name: "Max's curated job watch", type: "curated", endpoint: "./jobs.json", enabled: true, status: "Ready" }];
+  state.people = [{ id: "max", name: "Max", role: "Candidate" }];
   state.activity = saved.activity || [];
-  state.scout = saved.scout || { status: "ready", sourceCount: state.sources.filter((source) => source.enabled !== false).length };
+  state.scout = saved.scout || { status: "ready", sourceCount: 1 };
   state.generatedAt = saved.generatedAt || new Date().toISOString();
   state.connected = true;
   state.offline = false;
@@ -537,7 +532,7 @@ function renderSettings() {
   const profile = state.profile || {};
   const notificationPermission = "Notification" in window ? Notification.permission : "unsupported";
   const isOwner = state.person?.role === "supporter" || state.person?.role === "owner";
-  const accessPeople = state.people.length ? state.people : [{ name: "Max", role: "Candidate" }, { name: "Prateek", role: "Supporter" }];
+  const accessPeople = state.people.length ? state.people : [{ name: "Max", role: "Candidate" }];
 
   return `
     <div class="settings-layout">
@@ -600,7 +595,7 @@ function renderSettings() {
         </section>
 
         <section class="settings-section" id="settings-sources">
-          <div class="settings-section-heading"><h2>Job sources</h2><p>Two no-key feeds search remote and European roles immediately, with no account or activation step.</p></div>
+          <div class="settings-section-heading"><h2>Job sources</h2><p>Scout watches selected official employer boards for UK-accessible roles that match Max's CV—not generic worldwide listings.</p></div>
           <article class="settings-card">
             <div class="settings-card-header"><div><h3>Connected sources</h3><p>Scans rotate through local and remote searches during waking hours.</p></div></div>
             <div class="source-list">${state.sources.length ? state.sources.map(renderSourceRow).join("") : `<div class="private-note"><svg aria-hidden="true"><use href="#icon-zap"></use></svg><span>Add a public company feed or restore the default no-key sources.</span></div>`}</div>
@@ -635,7 +630,7 @@ function renderSettings() {
         <section class="settings-section" id="settings-privacy">
           <div class="settings-section-heading"><h2>Device and privacy</h2><p>The website contains no application history or contact details. What you add is saved in this browser.</p></div>
           <article class="settings-card">
-            <div class="settings-card-header"><div><h3>Workspace roles</h3><p>Use <strong>?for=max</strong> for Max and <strong>?for=prateek</strong> for Prateek; each device keeps its own local copy.</p></div></div>
+            <div class="settings-card-header"><div><h3>Made for Max</h3><p>One focused workspace using Max's CV evidence, target roles, salary floor, and location rules.</p></div></div>
             <div class="source-list">${accessPeople.map((person) => `<div class="source-row"><span class="avatar">${escapeHtml(initials(person.name))}</span><span class="source-copy"><strong>${escapeHtml(person.name)}</strong><span>${escapeHtml(titleCase(person.role || "member"))}</span></span><span class="health-badge">Private</span></div>`).join("")}</div>
             ${state.mode === "private" && isOwner ? `<div class="settings-card-footer"><button class="button quiet" type="button" data-action="resend-max-link"><svg aria-hidden="true"><use href="#icon-mail"></use></svg>Email Max a fresh link</button></div>` : ""}
           </article>
@@ -1086,7 +1081,7 @@ async function runLocalScout(options = {}) {
     const settled = await Promise.allSettled(enabled.map(fetchLocalSource));
     if (!settled.some((result) => result.status === "fulfilled")) throw new Error("All enabled job sources were unavailable");
     const candidates = settled.flatMap((result) => result.status === "fulfilled" ? result.value : []);
-    const ranked = decorateJobs(uniqueJobs(candidates), state.preferences, state.jobs)
+    const ranked = decorateJobs(uniqueJobs(candidates).filter(isMaxLocationEligible).filter(isMaxRoleEligible), state.preferences, state.jobs)
       .filter((job) => job.fit.score >= state.preferences.reviewThreshold)
       .sort((a, b) => b.fit.score - a.fit.score || String(b.postedDate).localeCompare(String(a.postedDate)));
     const fresh = ranked.filter((job) => !existingKeys.has(job.id) && !existingKeys.has(job.url)).slice(0, 80);
@@ -1118,6 +1113,12 @@ async function runLocalScout(options = {}) {
 }
 
 async function fetchLocalSource(source) {
+  if (source.id === "job-garden-curated") {
+    const response = await fetch(`${source.endpoint}?v=${Date.now()}`, { cache: "no-store", referrerPolicy: "no-referrer" });
+    if (!response.ok) throw new Error(`Curated job watch returned ${response.status}`);
+    const payload = await response.json();
+    return (payload.jobs || []).map(normaliseJob);
+  }
   if (source.id === "remotive") {
     const response = await fetch(source.endpoint, { cache: "no-store", referrerPolicy: "no-referrer" });
     if (!response.ok) throw new Error(`Remotive returned ${response.status}`);
@@ -1309,8 +1310,8 @@ function lockDevice() {
   state.jobs = [];
   state.activity = [];
   state.preferences = normalisePreferences(DEFAULT_PREFERENCES);
-  state.profile = structuredClone(demoProfile);
-  state.scout = { status: "ready", sourceCount: 2 };
+  state.profile = structuredClone(maxProfile);
+  state.scout = { status: "ready", sourceCount: 1 };
   state.connected = true;
   render();
   renderConnection();
