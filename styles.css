@@ -346,7 +346,7 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
 .discover-mode strong { font-size: 0.78rem; }
 .discover-mode small { color: var(--muted); font-size: 0.64rem; }
 .discover-mode b { display: inline-grid; min-width: 30px; height: 30px; place-items: center; border-radius: 999px; padding: 0 7px; color: var(--green); background: var(--surface-green); font-size: 0.7rem; }
-.freshness-overview { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 4px 0 18px; }
+.freshness-overview { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 4px 0 18px; }
 .freshness-stat { display: grid; min-height: 112px; align-content: center; border: 1px solid var(--line); border-radius: 15px; padding: 15px 17px; background: var(--surface); }
 .freshness-stat > span { color: var(--muted); font-size: 0.68rem; font-weight: 790; }
 .freshness-stat > strong { margin: 2px 0; font-size: 1.8rem; line-height: 1; letter-spacing: -0.055em; }
@@ -706,7 +706,7 @@ dialog::backdrop { background: rgba(12, 24, 17, .52); backdrop-filter: blur(6px)
   .insight-grid { grid-template-columns: 1fr; }
   .insight-card.accent { grid-column: auto; }
   .discover-modes { grid-template-columns: 1fr; }
-  .freshness-overview { grid-template-columns: repeat(3, minmax(138px, 1fr)); overflow-x: auto; padding-bottom: 4px; }
+  .freshness-overview { grid-auto-columns: minmax(138px, 1fr); grid-auto-flow: column; grid-template-columns: none; overflow-x: auto; padding-bottom: 4px; }
   .freshness-stat { min-height: 104px; }
   .discover-toolbar { grid-template-columns: 1fr 1fr; }
   .search-box { grid-column: 1 / -1; }
@@ -744,7 +744,7 @@ dialog::backdrop { background: rgba(12, 24, 17, .52); backdrop-filter: blur(6px)
   .metric-card { display: block; min-height: 96px; }
   .metric-icon { display: none; }
   .focus-score .score-ring { width: 66px; height: 66px; }
-  .freshness-overview { grid-template-columns: repeat(3, minmax(128px, 1fr)); margin-inline: -2px; }
+  .freshness-overview { grid-auto-columns: minmax(128px, 1fr); grid-template-columns: none; margin-inline: -2px; }
   .discover-toolbar { grid-template-columns: 1fr; }
   .search-box { grid-column: auto; }
   .toolbar-select { width: 100%; }

@@ -26,6 +26,13 @@ export const DEFAULT_PREFERENCES = Object.freeze({
     "Onboarding Manager",
     "Supplier Engagement Manager",
     "Customer Experience Manager",
+    "Service Operations Manager",
+    "Operations Manager",
+    "Operations Executive",
+    "Client Onboarding Manager",
+    "Project Coordinator",
+    "Programme Coordinator",
+    "Relationship Manager",
   ],
   includeTerms: [
     "client relationship",
@@ -198,7 +205,18 @@ export function isMaxLocationEligible(input = {}) {
 export function isMaxRoleEligible(input = {}) {
   const title = String(input.title || "").toLowerCase();
   if (/\bsales account manager\b|\bchannel account manager\b|\bdistribution accounts? manager\b|\btechnical account manager\b/.test(title)) return false;
-  return /\bcustomer success (?:manager|lead|team lead|executive)\b|\bclient success (?:manager|lead)\b|\bservice delivery (?:manager|lead)\b|\bclient services manager\b|\bmanager,? client services\b|\bclient operations (?:manager|lead)\b|\bcustomer operations (?:manager|lead)\b|\bcustomer (?:support|service)(?: & technical support)? (?:manager|lead|team lead)\b|\bteam (?:leader|lead).*\bcustomer (?:support|service|operations)\b|\baccount manager\b|\bimplementation (?:manager|consultant|lead)\b|\bonboarding (?:manager|consultant|lead)\b|\bsupplier engagement manager\b|\bcustomer experience manager\b|\bclient relationship manager\b/.test(title);
+  return /\bcustomer success (?:manager|lead|team lead|executive)\b|\bclient success (?:manager|lead)\b|\bservice delivery (?:manager|lead)\b|\bservice operations (?:manager|lead|coordinator)\b|\bsupport services manager\b|\bclient services manager\b|\bmanager,? client services\b|\bclient operations (?:manager|lead|coordinator|executive)\b|\bcustomer operations (?:manager|lead|coordinator|executive)\b|\boperations (?:manager|lead|coordinator|executive)\b|\bcustomer (?:support|service)(?: & technical support)? (?:manager|lead|team lead|advisor)\b|\bteam (?:leader|lead).*\bcustomer (?:support|service|operations)\b|\baccount manager\b|\bimplementation (?:manager|consultant|lead|coordinator)\b|\bonboarding (?:manager|consultant|lead|coordinator)\b|\bmanager\b.*\bclient onboarding\b|\bsupplier (?:engagement|relationship) manager\b|\bcustomer experience manager\b|\b(?:client )?relationship manager\b|\bproject coordinator\b|\bprogramme coordinator\b|\bprogram coordinator\b|\bclient administrator\b/.test(title);
+}
+
+export function maxLocationRank(input = {}) {
+  const job = normaliseJob(input);
+  const location = `${job.location} ${job.workPattern}`.toLowerCase().replace(/[·|/]/g, " ").replace(/\s+/g, " ").trim();
+  if (/\bglasgow\b|\brenfrewshire\b/.test(location)) return 0;
+  const remote = /\bremote\b|work from home|home-based/.test(location);
+  if (remote && /\bunited kingdom\b|\buk\b/.test(location)) return 1;
+  if (/\bedinburgh\b/.test(location)) return 2;
+  if (remote) return 3;
+  return 4;
 }
 
 export function normaliseStatus(value = "new") {
@@ -349,6 +367,7 @@ export function decorateJobs(items, preferences, feedbackJobs = items) {
 
 export function sortJobs(items, mode = "recommended") {
   return [...items].sort((a, b) => {
+    if (mode === "location") return maxLocationRank(a) - maxLocationRank(b) || (b.fit?.score || 0) - (a.fit?.score || 0) || compareDates(b.postedDate || b.discoveredAt, a.postedDate || a.discoveredAt);
     if (mode === "newest") return compareDates(b.postedDate || b.discoveredAt, a.postedDate || a.discoveredAt) || (b.fit?.score || 0) - (a.fit?.score || 0);
     if (mode === "salary") return (b.salaryMax || b.salaryMin || 0) - (a.salaryMax || a.salaryMin || 0) || (b.fit?.score || 0) - (a.fit?.score || 0);
     if (mode === "deadline") return compareDates(a.deadline || "9999-12-31", b.deadline || "9999-12-31");

@@ -20,6 +20,7 @@ import {
   isMaxLocationEligible,
   isMaxRoleEligible,
   localDateKey,
+  maxLocationRank,
   nextActionFor,
   normaliseJob,
   normalisePreferences,
@@ -74,11 +75,11 @@ const state = {
   offline: false,
   syncing: false,
   search: "",
-  searchMode: "recommended",
+  searchMode: "all",
   searchLocation: "all",
-  searchLimit: 30,
+  searchLimit: 60,
   discoverFilter: "week",
-  sort: "newest",
+  sort: "location",
   selectedJobId: "",
   cvJobId: "",
   messageKind: "recruiter",
@@ -195,7 +196,7 @@ function loadLocalWorkspace() {
   });
   state.jobs = (saved.jobs || [])
     .map(normaliseJob)
-    .filter((job) => !(["Remotive", "Arbeitnow"].includes(job.source) || / careers$/i.test(job.source)) || (isMaxLocationEligible(job) && isMaxRoleEligible(job)));
+    .filter((job) => job.status !== "new" || !isManagedFeedJob(job) || isMaxLocationEligible(job));
   state.searchIndex = [];
   state.sources = [{ id: "job-garden-curated", name: "Max's curated job watch", type: "curated", endpoint: "./jobs.json", enabled: true, status: "Ready" }];
   state.people = [{ id: "max", name: "Max", role: "Candidate" }];
@@ -374,12 +375,15 @@ function renderDiscover(jobs) {
     remote: freshCandidates.filter((job) => job.workPattern === "remote" || /remote/i.test(job.location)).length,
     saved: trackedCandidates.filter((job) => job.status === "saved").length,
     unseen: trackedCandidates.filter((job) => jobAge(job) <= state.feedFreshnessDays && job.status === "new" && !job.seenAt).length,
+    glasgow: freshCandidates.filter((job) => maxLocationRank(job) === 0).length,
+    remoteUk: freshCandidates.filter((job) => maxLocationRank(job) === 1).length,
+    edinburgh: freshCandidates.filter((job) => maxLocationRank(job) === 2).length,
   };
   const checkedSources = state.feedSourceCount || state.scout.sourceCount || 1;
-  const headline = recommendedMode ? "Best-fit roles for Max" : "Search every fresh role";
+  const headline = recommendedMode ? "Top CV matches" : "Every fresh, workable job";
   const intro = recommendedMode
     ? `A focused shortlist based on Max’s CV, Glasgow, Edinburgh, and suitable remote work. Every role is no more than ${state.feedFreshnessDays} days old.`
-    : `Search ${counts.week} fresh, location-safe roles from ${checkedSources} connected sources. Keywords search titles, employers, locations, skills, and advert text.`;
+    : `Explore ${counts.week} fresh roles from ${checkedSources} connected sources, ordered Glasgow first, then remote UK, then Edinburgh. CV fit helps rank within each place—it does not hide the rest.`;
   const emptyTitle = recommendedMode ? "No recommended roles in this view" : "No fresh jobs match that search";
   const emptyBody = recommendedMode
     ? "The all-sources search may still have useful roles outside the automatic shortlist."
@@ -393,18 +397,17 @@ function renderDiscover(jobs) {
           <div class="section-actions">${recommendedMode && counts.unseen ? `<button class="button quiet small" type="button" data-action="mark-all-seen"><svg aria-hidden="true"><use href="#icon-check"></use></svg>Mark seen</button>` : ""}<button class="button quiet small" type="button" data-action="run-scout"><svg aria-hidden="true"><use href="#icon-refresh"></use></svg>Check now</button></div>
         </div>
         <div class="discover-modes" role="tablist" aria-label="Choose job discovery mode">
-          <button type="button" role="tab" aria-selected="${recommendedMode}" class="discover-mode ${recommendedMode ? "active" : ""}" data-search-mode="recommended"><span><strong>For Max</strong><small>CV-matched shortlist</small></span><b>${trackedCandidates.filter((job) => jobAge(job) <= state.feedFreshnessDays).length}</b></button>
-          <button type="button" role="tab" aria-selected="${!recommendedMode}" class="discover-mode ${!recommendedMode ? "active" : ""}" data-search-mode="all"><span><strong>Search all sources</strong><small>No CV-title gate</small></span><b>${state.searchIndex.length}</b></button>
+          <button type="button" role="tab" aria-selected="${!recommendedMode}" class="discover-mode ${!recommendedMode ? "active" : ""}" data-search-mode="all"><span><strong>All relevant jobs</strong><small>Glasgow-first full search</small></span><b>${state.searchIndex.length}</b></button>
+          <button type="button" role="tab" aria-selected="${recommendedMode}" class="discover-mode ${recommendedMode ? "active" : ""}" data-search-mode="recommended"><span><strong>Top CV matches</strong><small>Smaller high-confidence list</small></span><b>${trackedCandidates.filter((job) => jobAge(job) <= state.feedFreshnessDays).length}</b></button>
         </div>
         <div class="freshness-overview" aria-label="Fresh job summary">
-          <article class="freshness-stat urgent"><span>Today</span><strong>${counts.today}</strong><small>posted in the last 24 hours</small></article>
-          <article class="freshness-stat"><span>Last 72 hours</span><strong>${counts.threeDays}</strong><small>best window for early applications</small></article>
-          <article class="freshness-stat"><span>${recommendedMode ? "This week" : "Searchable now"}</span><strong>${counts.week}</strong><small>across ${checkedSources} connected sources</small></article>
+          ${recommendedMode ? `<article class="freshness-stat urgent"><span>Today</span><strong>${counts.today}</strong><small>posted in the last 24 hours</small></article><article class="freshness-stat"><span>Last 72 hours</span><strong>${counts.threeDays}</strong><small>best window for early applications</small></article><article class="freshness-stat"><span>This week</span><strong>${counts.week}</strong><small>across ${checkedSources} connected sources</small></article>` : `<article class="freshness-stat urgent"><span>Glasgow first</span><strong>${counts.glasgow}</strong><small>local and Glasgow-area roles</small></article><article class="freshness-stat"><span>Remote UK</span><strong>${counts.remoteUk}</strong><small>UK-accessible home working</small></article><article class="freshness-stat"><span>Edinburgh</span><strong>${counts.edinburgh}</strong><small>local roles shown third</small></article><article class="freshness-stat"><span>Posted today</span><strong>${counts.today}</strong><small>across every eligible location</small></article>`}
         </div>
         <div class="discover-toolbar ${recommendedMode ? "" : "all-search"}">
           <label class="search-box"><svg aria-hidden="true"><use href="#icon-search"></use></svg><input id="searchJobs" type="search" value="${escapeHtml(state.search)}" placeholder="${recommendedMode ? "Search this shortlist…" : "Try customer success, German, onboarding…"}" aria-label="Search jobs" /></label>
-          ${recommendedMode ? "" : `<select class="toolbar-select" id="searchLocation" aria-label="Filter job location">${option("all", "Any eligible location", state.searchLocation)}${option("remote", "Remote", state.searchLocation)}${option("glasgow", "Glasgow", state.searchLocation)}${option("edinburgh", "Edinburgh", state.searchLocation)}</select>`}
+          ${recommendedMode ? "" : `<select class="toolbar-select" id="searchLocation" aria-label="Filter job location">${option("all", "All eligible locations", state.searchLocation)}${option("glasgow", "Glasgow first", state.searchLocation)}${option("remote-uk", "Remote UK", state.searchLocation)}${option("edinburgh", "Edinburgh", state.searchLocation)}${option("other-remote", "Other eligible remote", state.searchLocation)}</select>`}
           <select class="toolbar-select" id="sortJobs" aria-label="Sort jobs">
+            ${option("location", "Glasgow → Remote UK → Edinburgh", state.sort)}
             ${option("newest", "Newest first", state.sort)}
             ${option("recommended", "Best CV match", state.sort)}
             ${option("salary", "Highest salary", state.sort)}
@@ -419,7 +422,7 @@ function renderDiscover(jobs) {
           ${recommendedMode ? `${filterChip("remote", "Remote", counts.remote)}${filterChip("saved", "Saved", counts.saved)}` : ""}
         </div>
         <div class="results-line"><span><strong>${filtered.length}</strong> matching role${filtered.length === 1 ? "" : "s"}${!recommendedMode && filtered.length > visible.length ? ` · showing ${visible.length}` : ""}</span><span>${state.scout.lastRunAt ? `Checked ${timeAgo(state.scout.lastRunAt)}` : "Checking automatically"}</span></div>
-        ${visible.length ? `<div class="job-grid">${visible.map((job) => renderJobCard(job, { broad: !recommendedMode })).join("")}</div>${!recommendedMode && visible.length < filtered.length ? `<div class="load-more"><button class="button quiet" type="button" data-action="load-more">Show ${Math.min(30, filtered.length - visible.length)} more</button></div>` : ""}` : renderEmpty("search", emptyTitle, emptyBody, recommendedMode ? "Search all sources" : "Clear search", recommendedMode ? "show-all-search" : "clear-filters")}
+        ${visible.length ? `<div class="job-grid">${visible.map((job) => renderJobCard(job, { broad: !recommendedMode })).join("")}</div>${!recommendedMode && visible.length < filtered.length ? `<div class="load-more"><button class="button quiet" type="button" data-action="load-more">Show ${Math.min(60, filtered.length - visible.length)} more</button></div>` : ""}` : renderEmpty("search", emptyTitle, emptyBody, recommendedMode ? "Search all sources" : "Clear search", recommendedMode ? "show-all-search" : "clear-filters")}
       </section>
     </div>`;
 }
@@ -803,7 +806,7 @@ function handleDocumentClick(event) {
   const filter = event.target.closest("[data-filter]");
   if (filter) {
     state.discoverFilter = filter.dataset.filter;
-    state.searchLimit = 30;
+    state.searchLimit = 60;
     render();
     return;
   }
@@ -811,7 +814,7 @@ function handleDocumentClick(event) {
   if (searchMode) {
     state.searchMode = searchMode.dataset.searchMode === "all" ? "all" : "recommended";
     state.discoverFilter = "week";
-    state.searchLimit = 30;
+    state.searchLimit = 60;
     render();
     requestAnimationFrame(() => document.querySelector("#searchJobs")?.focus({ preventScroll: true }));
     return;
@@ -819,7 +822,7 @@ function handleDocumentClick(event) {
   const searchQuery = event.target.closest("[data-search-query]");
   if (searchQuery) {
     state.search = searchQuery.dataset.searchQuery || "";
-    state.searchLimit = 30;
+    state.searchLimit = 60;
     render();
     return;
   }
@@ -850,7 +853,7 @@ function handleDocumentClick(event) {
 function handleDocumentInput(event) {
   if (event.target.id === "searchJobs") {
     state.search = event.target.value;
-    state.searchLimit = 30;
+    state.searchLimit = 60;
     window.clearTimeout(handleDocumentInput.timer);
     handleDocumentInput.timer = window.setTimeout(render, 120);
   }
@@ -865,7 +868,7 @@ function handleDocumentChange(event) {
   }
   if (target.id === "searchLocation") {
     state.searchLocation = target.value;
-    state.searchLimit = 30;
+    state.searchLimit = 60;
     render();
     return;
   }
@@ -943,16 +946,16 @@ async function handleAction(action) {
     state.search = "";
     state.searchLocation = "all";
     state.discoverFilter = "week";
-    state.searchLimit = 30;
+    state.searchLimit = 60;
     render();
   } else if (action === "show-all-search") {
     state.searchMode = "all";
     state.search = "";
     state.discoverFilter = "week";
-    state.searchLimit = 30;
+    state.searchLimit = 60;
     render();
   } else if (action === "load-more") {
-    state.searchLimit += 30;
+    state.searchLimit += 60;
     render();
   } else if (action === "mark-all-seen") {
     markAllSeen();
@@ -1505,9 +1508,12 @@ function matchesJobSearch(job, query) {
 
 function matchesSearchLocation(job, location) {
   if (!location || location === "all") return true;
-  const text = `${job.location} ${job.workPattern}`.toLowerCase();
-  if (location === "remote") return text.includes("remote");
-  return text.includes(location);
+  const rank = maxLocationRank(job);
+  if (location === "glasgow") return rank === 0;
+  if (location === "remote-uk") return rank === 1;
+  if (location === "edinburgh") return rank === 2;
+  if (location === "other-remote") return rank === 3;
+  return true;
 }
 
 function isManagedFeedJob(job) {
