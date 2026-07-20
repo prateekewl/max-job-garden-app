@@ -298,8 +298,8 @@ function renderToday(jobs, stats) {
       <section class="welcome-hero">
         <div class="hero-copy">
           <p class="eyebrow">${escapeHtml(greeting)}, ${escapeHtml(firstName)}</p>
-          <h2>${focus ? escapeHtml(heroMessage(focus.action)) : "Make today smaller."}</h2>
-          <p>${focus ? escapeHtml(focus.action.detail) : "One thoughtful application or follow-up is enough to move the search forward today."}</p>
+          <h2>${focus ? escapeHtml(heroMessage(focus.action)) : "Build some momentum."}</h2>
+          <p>${focus ? escapeHtml(focus.action.detail) : "Start with one clear action, then keep going for as long as it feels useful."}</p>
           <div class="hero-actions">
             ${focus ? `<button class="button primary" type="button" data-open-job="${escapeHtml(focus.job.id)}">${escapeHtml(focus.action.label)}<svg aria-hidden="true"><use href="#icon-arrow"></use></svg></button>` : `<button class="button primary" type="button" data-view="discover">Find a role to review<svg aria-hidden="true"><use href="#icon-arrow"></use></svg></button>`}
             <button class="button quiet" type="button" data-view="pipeline">See the whole pipeline</button>
@@ -319,12 +319,12 @@ function renderToday(jobs, stats) {
         ${metricCard("sparkles", "New matches", stats.newMatches, stats.newMatches ? "Ready for a quick yes/no" : "Nothing noisy waiting", "lime")}
         ${metricCard("clock", "Follow-ups", stats.followUps, stats.followUps ? "Worth doing today" : "Nothing overdue", stats.followUps ? "amber" : "")}
         ${metricCard("inbox", "Active", stats.active, "Applications still moving", "")}
-        ${metricCard("target", "Minimum win", dailyRemaining ? `${dailyRemaining} left` : "Done", dailyRemaining ? "Quality beats volume" : "Today’s target reached", dailyRemaining ? "" : "lime")}
+        ${metricCard("target", "Daily goal", dailyRemaining ? `${dailyRemaining} left` : "Done", dailyRemaining ? "A flexible target, not a limit" : "Today’s target reached", dailyRemaining ? "" : "lime")}
       </section>
 
       <section class="section">
         <div class="section-heading">
-          <div><p class="eyebrow">The next useful move</p><h2>Focus, then stop</h2><p>The page ranks urgency, freshness, and fit so Max does not have to keep every job in his head.</p></div>
+          <div><p class="eyebrow">The next useful move</p><h2>Start here</h2><p>The page ranks urgency, freshness, and fit so Max can act quickly without keeping every job in his head.</p></div>
         </div>
         <div class="focus-layout">
           ${focus ? renderFocusCard(focus.job, focus.action) : renderNoFocusCard()}
@@ -341,7 +341,7 @@ function renderToday(jobs, stats) {
       <section class="section">
         <div class="section-heading"><div><p class="eyebrow">A healthier search</p><h2>Useful context, not pressure</h2></div></div>
         <div class="insight-grid">
-          <article class="insight-card accent"><svg aria-hidden="true"><use href="#icon-zap"></use></svg><h3>One strong application beats five rushed ones.</h3><p>The daily goal is intentionally small and fully adjustable. Finishing early is a valid outcome.</p></article>
+          <article class="insight-card accent"><svg aria-hidden="true"><use href="#icon-zap"></use></svg><h3>Keep momentum without losing quality.</h3><p>The daily goal is adjustable and never caps how many good opportunities Max can pursue.</p></article>
           <article class="insight-card"><svg aria-hidden="true"><use href="#icon-chart"></use></svg><h3>${stats.applications} applications are evidence</h3><p>${stats.interviews} interview or assessment processes reveal which role families and proof points are creating traction.</p></article>
           <article class="insight-card"><svg aria-hidden="true"><use href="#icon-sprout"></use></svg><h3>The garden learns from “no”</h3><p>Skipping a low-pay, wrong-location, or sales-heavy role teaches the scorer what not to interrupt Max with next time.</p></article>
         </div>
@@ -380,48 +380,42 @@ function renderDiscover(jobs) {
     edinburgh: freshCandidates.filter((job) => maxLocationRank(job) === 2).length,
   };
   const checkedSources = state.feedSourceCount || state.scout.sourceCount || 1;
-  const headline = recommendedMode ? "Top CV matches" : "Every fresh, workable job";
+  const headline = recommendedMode ? "Best matches for Max" : "Find your next role";
   const intro = recommendedMode
-    ? `A focused shortlist based on Max’s CV, Glasgow, Edinburgh, and suitable remote work. Every role is no more than ${state.feedFreshnessDays} days old.`
-    : `Explore ${counts.week} fresh roles from ${checkedSources} connected sources, ordered Glasgow first, then remote UK, then Edinburgh. CV fit helps rank within each place—it does not hide the rest.`;
-  const emptyTitle = recommendedMode ? "No recommended roles in this view" : "No fresh jobs match that search";
+    ? `A shorter list of fresh roles with the strongest overlap with Max’s experience. The score is a guide, not a gate.`
+    : `Search ${counts.week} current roles from ${checkedSources} sources. Browse by place, title, skill, or company—CV scoring never hides the wider search.`;
+  const emptyTitle = recommendedMode ? "No strong matches in this view" : "No jobs match those filters";
   const emptyBody = recommendedMode
-    ? "The all-sources search may still have useful roles outside the automatic shortlist."
-    : "Try a shorter keyword, another eligible location, or the full seven-day window.";
+    ? "Browse all jobs to explore roles outside the automatic shortlist."
+    : "Try a shorter keyword, another location, or the full seven-day window.";
 
   return `
     <div class="page-stack">
       <section class="section">
         <div class="section-heading discover-heading">
-          <div><p class="eyebrow">Fresh first, always</p><h2>${headline}</h2><p>${intro}</p></div>
+          <div><p class="eyebrow">Updated throughout the day</p><h2>${headline}</h2><p>${intro}</p></div>
           <div class="section-actions">${recommendedMode && counts.unseen ? `<button class="button quiet small" type="button" data-action="mark-all-seen"><svg aria-hidden="true"><use href="#icon-check"></use></svg>Mark seen</button>` : ""}<button class="button quiet small" type="button" data-action="run-scout"><svg aria-hidden="true"><use href="#icon-refresh"></use></svg>Check now</button></div>
         </div>
         <div class="discover-modes" role="tablist" aria-label="Choose job discovery mode">
-          <button type="button" role="tab" aria-selected="${!recommendedMode}" class="discover-mode ${!recommendedMode ? "active" : ""}" data-search-mode="all"><span><strong>All relevant jobs</strong><small>Glasgow-first full search</small></span><b>${state.searchIndex.length}</b></button>
-          <button type="button" role="tab" aria-selected="${recommendedMode}" class="discover-mode ${recommendedMode ? "active" : ""}" data-search-mode="recommended"><span><strong>Top CV matches</strong><small>Smaller high-confidence list</small></span><b>${trackedCandidates.filter((job) => jobAge(job) <= state.feedFreshnessDays).length}</b></button>
+          <button type="button" role="tab" aria-selected="${!recommendedMode}" class="discover-mode ${!recommendedMode ? "active" : ""}" data-search-mode="all"><span><strong>Browse all jobs</strong><small>Every current opportunity</small></span><b>${state.searchIndex.length}</b></button>
+          <button type="button" role="tab" aria-selected="${recommendedMode}" class="discover-mode ${recommendedMode ? "active" : ""}" data-search-mode="recommended"><span><strong>Best matches</strong><small>Ranked against Max’s CV</small></span><b>${trackedCandidates.filter((job) => jobAge(job) <= state.feedFreshnessDays).length}</b></button>
         </div>
-        <div class="freshness-overview" aria-label="Fresh job summary">
-          ${recommendedMode ? `<article class="freshness-stat urgent"><span>Today</span><strong>${counts.today}</strong><small>posted in the last 24 hours</small></article><article class="freshness-stat"><span>Last 72 hours</span><strong>${counts.threeDays}</strong><small>best window for early applications</small></article><article class="freshness-stat"><span>This week</span><strong>${counts.week}</strong><small>across ${checkedSources} connected sources</small></article>` : `<article class="freshness-stat urgent"><span>Glasgow first</span><strong>${counts.glasgow}</strong><small>local and Glasgow-area roles</small></article><article class="freshness-stat"><span>Remote UK</span><strong>${counts.remoteUk}</strong><small>UK-accessible home working</small></article><article class="freshness-stat"><span>Edinburgh</span><strong>${counts.edinburgh}</strong><small>local roles shown third</small></article><article class="freshness-stat"><span>Posted today</span><strong>${counts.today}</strong><small>across every eligible location</small></article>`}
+        <div class="discover-search-panel">
+          <div class="discover-toolbar ${recommendedMode ? "" : "all-search"}">
+            <label class="search-box"><svg aria-hidden="true"><use href="#icon-search"></use></svg><input id="searchJobs" type="search" value="${escapeHtml(state.search)}" placeholder="Search titles, skills or companies" aria-label="Search jobs" /></label>
+            <select class="toolbar-select" id="sortJobs" aria-label="Sort jobs">
+              ${option("location", "Recommended order", state.sort)}
+              ${option("newest", "Newest", state.sort)}
+              ${option("recommended", "Closest CV match", state.sort)}
+              ${option("salary", "Highest salary", state.sort)}
+            </select>
+            ${recommendedMode ? `<button class="button quiet" type="button" data-view="settings" data-settings-section="search"><svg aria-hidden="true"><use href="#icon-filter"></use></svg>Search profile</button>` : ""}
+          </div>
+          ${recommendedMode ? "" : `<div class="filter-group"><span class="filter-label">Location</span><div class="filter-strip location-strip" role="group" aria-label="Filter by location">${locationChip("all", "All", counts.week)}${locationChip("glasgow", "Glasgow & nearby", counts.glasgow)}${locationChip("remote-uk", "Remote UK", counts.remoteUk)}${locationChip("edinburgh", "Edinburgh", counts.edinburgh)}${locationChip("other-remote", "Other remote", Math.max(0, counts.remote - counts.remoteUk))}</div></div>`}
+          <div class="filter-group"><span class="filter-label">Posted</span><div class="filter-strip" role="group" aria-label="Filter by date">${filterChip("week", `Past ${state.feedFreshnessDays} days`, counts.week)}${filterChip("today", "Today", counts.today)}${filterChip("three-days", "Past 72 hours", counts.threeDays)}${recommendedMode ? `${filterChip("remote", "Remote", counts.remote)}${filterChip("saved", "Saved", counts.saved)}` : ""}</div></div>
+          ${recommendedMode ? "" : `<div class="keyword-suggestions" aria-label="Suggested searches"><span>Popular searches</span>${["operations manager", "service delivery", "customer success", "onboarding", "project coordinator"].map((term) => `<button type="button" data-search-query="${escapeHtml(term)}">${escapeHtml(term)}</button>`).join("")}</div>`}
         </div>
-        <div class="discover-toolbar ${recommendedMode ? "" : "all-search"}">
-          <label class="search-box"><svg aria-hidden="true"><use href="#icon-search"></use></svg><input id="searchJobs" type="search" value="${escapeHtml(state.search)}" placeholder="${recommendedMode ? "Search this shortlist…" : "Try customer success, German, onboarding…"}" aria-label="Search jobs" /></label>
-          ${recommendedMode ? "" : `<select class="toolbar-select" id="searchLocation" aria-label="Filter job location">${option("all", "All eligible locations", state.searchLocation)}${option("glasgow", "Glasgow first", state.searchLocation)}${option("remote-uk", "Remote UK", state.searchLocation)}${option("edinburgh", "Edinburgh", state.searchLocation)}${option("other-remote", "Other eligible remote", state.searchLocation)}</select>`}
-          <select class="toolbar-select" id="sortJobs" aria-label="Sort jobs">
-            ${option("location", "Glasgow → Remote UK → Edinburgh", state.sort)}
-            ${option("newest", "Newest first", state.sort)}
-            ${option("recommended", "Best CV match", state.sort)}
-            ${option("salary", "Highest salary", state.sort)}
-          </select>
-          ${recommendedMode ? `<button class="button quiet" type="button" data-view="settings" data-settings-section="search"><svg aria-hidden="true"><use href="#icon-filter"></use></svg>Search profile</button>` : ""}
-        </div>
-        ${recommendedMode ? "" : `<div class="keyword-suggestions" aria-label="Suggested searches"><span>Try:</span>${["customer success", "service delivery", "German", "account manager", "onboarding"].map((term) => `<button type="button" data-search-query="${escapeHtml(term)}">${escapeHtml(term)}</button>`).join("")}</div>`}
-        <div class="filter-strip" role="group" aria-label="Filter jobs">
-          ${filterChip("week", "This week", counts.week)}
-          ${filterChip("today", "Today", counts.today)}
-          ${filterChip("three-days", "72 hours", counts.threeDays)}
-          ${recommendedMode ? `${filterChip("remote", "Remote", counts.remote)}${filterChip("saved", "Saved", counts.saved)}` : ""}
-        </div>
-        <div class="results-line"><span><strong>${filtered.length}</strong> matching role${filtered.length === 1 ? "" : "s"}${!recommendedMode && filtered.length > visible.length ? ` · showing ${visible.length}` : ""}</span><span>${state.scout.lastRunAt ? `Checked ${timeAgo(state.scout.lastRunAt)}` : "Checking automatically"}</span></div>
+        <div class="results-line"><span><strong>${filtered.length}</strong> opportunit${filtered.length === 1 ? "y" : "ies"}${!recommendedMode && filtered.length > visible.length ? ` · showing ${visible.length}` : ""}</span><span>${state.scout.lastRunAt ? `Updated ${timeAgo(state.scout.lastRunAt)}` : "Updates automatically"}</span></div>
         ${visible.length ? `<div class="job-grid">${visible.map((job) => renderJobCard(job, { broad: !recommendedMode })).join("")}</div>${!recommendedMode && visible.length < filtered.length ? `<div class="load-more"><button class="button quiet" type="button" data-action="load-more">Show ${Math.min(60, filtered.length - visible.length)} more</button></div>` : ""}` : renderEmpty("search", emptyTitle, emptyBody, recommendedMode ? "Search all sources" : "Clear search", recommendedMode ? "show-all-search" : "clear-filters")}
       </section>
     </div>`;
@@ -684,11 +678,11 @@ function renderJobCard(job, options = {}) {
   const salary = salaryText(job);
   const unseen = !options.broad && job.status === "new" && !job.seenAt;
   return `<button class="job-card ${unseen ? "unseen" : ""}" type="button" data-open-job="${escapeHtml(job.id)}">
-    <div class="job-card-top"><div><div class="meta-row">${freshnessPill(job)}${job.status !== "new" ? statusPill(job.status) : ""}${options.broad ? metaPill("All sources") : ""}</div><h3>${escapeHtml(job.title)}</h3><span class="job-card-company">${escapeHtml(job.company)}</span></div>${scoreRing(job.fit)}</div>
-    <div class="job-card-meta"><span><svg aria-hidden="true"><use href="#icon-map"></use></svg>${escapeHtml(job.location)}</span><span><svg aria-hidden="true"><use href="#icon-money"></use></svg>${escapeHtml(salary)}</span></div>
-    <p class="job-card-scan">${escapeHtml(advertSummary(job.description, 150) || "Open for the key fit signals, concerns, and application decision.")}</p>
-    <div class="job-card-reasons">${job.fit.reasons.slice(0, 2).map((reason) => metaPill(reason, "good")).join("")}${job.fit.concerns.slice(0, 1).map((reason) => metaPill(reason, "warn")).join("")}</div>
-    <div class="job-card-footer"><span>${escapeHtml(job.aggregated ? `${job.source} listing` : "Direct employer advert")}</span><strong>${options.broad ? "Open result" : "30-sec review"}<svg aria-hidden="true"><use href="#icon-arrow"></use></svg></strong></div>
+    <div class="job-card-top"><div class="meta-row">${freshnessPill(job)}${job.status !== "new" ? statusPill(job.status) : ""}</div>${matchBadge(job.fit)}</div>
+    <div class="job-card-title"><h3>${escapeHtml(job.title)}</h3><span class="job-card-company">${escapeHtml(job.company)}</span></div>
+    <div class="job-card-facts"><span><svg aria-hidden="true"><use href="#icon-map"></use></svg><span>${escapeHtml(job.location)}</span></span><span><svg aria-hidden="true"><use href="#icon-money"></use></svg><span>${escapeHtml(salary)}</span></span></div>
+    <div class="job-card-signal"><span>Why it could fit</span><strong>${escapeHtml(job.fit.reasons[0] || "Relevant experience may transfer")}</strong>${job.fit.concerns[0] ? `<small>${escapeHtml(job.fit.concerns[0])}</small>` : ""}</div>
+    <div class="job-card-footer"><span>${escapeHtml(job.source || "Job source")}</span><strong>Review job<svg aria-hidden="true"><use href="#icon-arrow"></use></svg></strong></div>
   </button>`;
 }
 
@@ -702,7 +696,7 @@ function renderFocusCard(job, action) {
 }
 
 function renderNoFocusCard() {
-  return `<article class="focus-card-large"><div class="focus-content"><span class="focus-kicker"><svg aria-hidden="true"><use href="#icon-sprout"></use></svg>Clear space</span><h3>Nothing urgent is asking for attention.</h3><p>That is useful information. Check Discover once, or stop for today.</p><button class="button primary" type="button" data-view="discover">Open Discover<svg aria-hidden="true"><use href="#icon-arrow"></use></svg></button></div></article>`;
+  return `<article class="focus-card-large"><div class="focus-content"><span class="focus-kicker"><svg aria-hidden="true"><use href="#icon-sprout"></use></svg>Ready when you are</span><h3>Nothing urgent is waiting.</h3><p>Browse fresh roles or use the pipeline to keep an existing application moving.</p><button class="button primary" type="button" data-view="discover">Browse jobs<svg aria-hidden="true"><use href="#icon-arrow"></use></svg></button></div></article>`;
 }
 
 function renderActionItem({ job, action }) {
@@ -715,7 +709,7 @@ function renderJobDialog(jobId) {
   const job = findViewJob(jobId);
   if (!job) return;
   const checklist = applicationChecklist(job);
-  const summary = advertSummary(job.description, 420);
+  const summary = advertSummary(job.description, 260);
   const highlights = advertHighlights(job.description);
   const concerns = uniqueList([
     ...(job.fit.concerns || []),
@@ -730,18 +724,19 @@ function renderJobDialog(jobId) {
   jobDialogContent.innerHTML = `<div class="job-dialog-shell">
     <div class="job-dialog-header"><span>${escapeHtml(freshnessLabel(job))} · ${escapeHtml(job.source)}</span><button class="icon-button" type="button" data-close-dialog="jobDialog" aria-label="Close"><svg aria-hidden="true"><use href="#icon-close"></use></svg></button></div>
     <div class="job-detail">
-      <section class="job-detail-hero"><div><div class="meta-row">${freshnessPill(job)}${statusPill(job.status)}${job.aggregated ? metaPill("Partner listing") : metaPill("Direct employer", "good")}</div><h2 id="jobDialogTitle">${escapeHtml(job.title)}</h2><p class="job-detail-company">${escapeHtml(job.company)}</p><p class="job-detail-summary">${escapeHtml(summary || "The source did not provide a usable summary. Use the direct advert to verify the role before applying.")}</p></div>${scoreRing(job.fit)}</section>
+      <section class="job-detail-hero"><div><div class="meta-row">${freshnessPill(job)}${statusPill(job.status)}${matchBadge(job.fit)}</div><h2 id="jobDialogTitle">${escapeHtml(job.title)}</h2><p class="job-detail-company">${escapeHtml(job.company)}</p><p class="job-detail-summary">${escapeHtml(summary || "Open the live advert to confirm the responsibilities and requirements before applying.")}</p></div></section>
       <div class="decision-facts" aria-label="Fast job check">
-        ${decisionFact("calendar", "Freshness", freshnessLabel(job))}
-        ${decisionFact("map", "Eligible location", job.location)}
+        ${decisionFact("map", "Location", job.location)}
+        ${decisionFact("home", "Work style", job.workPattern === "unknown" ? "Check advert" : titleCase(job.workPattern))}
         ${decisionFact("money", "Salary", salaryText(job))}
+        ${decisionFact("calendar", "Posted", freshnessLabel(job).replace(/^Posted /, ""))}
       </div>
       <div class="job-detail-grid">
-        <article class="detail-card decision-card good"><h3><svg aria-hidden="true"><use href="#icon-sparkles"></use></svg>Why it may fit</h3><ul class="reason-list">${job.fit.reasons.length ? job.fit.reasons.map((reason) => `<li>${escapeHtml(reason)}</li>`).join("") : "<li>No strong match signal yet.</li>"}</ul></article>
-        <article class="detail-card decision-card"><h3><svg aria-hidden="true"><use href="#icon-target"></use></svg>Verify before applying</h3><ul class="concern-list">${concerns.length ? concerns.map((concern) => `<li>${escapeHtml(concern)}</li>`).join("") : "<li>No obvious blocker found—still confirm the advert is live.</li>"}</ul></article>
+        <article class="detail-card decision-card good"><h3><svg aria-hidden="true"><use href="#icon-sparkles"></use></svg>Good signs</h3><ul class="reason-list">${job.fit.reasons.length ? job.fit.reasons.slice(0, 4).map((reason) => `<li>${escapeHtml(reason)}</li>`).join("") : "<li>No strong match signal yet.</li>"}</ul></article>
+        <article class="detail-card decision-card"><h3><svg aria-hidden="true"><use href="#icon-target"></use></svg>Check before applying</h3><ul class="concern-list">${concerns.length ? concerns.slice(0, 4).map((concern) => `<li>${escapeHtml(concern)}</li>`).join("") : "<li>No obvious blocker found—confirm the live advert is still open.</li>"}</ul></article>
       </div>
-      <article class="detail-card advert-highlights"><h3><svg aria-hidden="true"><use href="#icon-file"></use></svg>What the role appears to involve</h3><ul class="highlight-list">${highlights.length ? highlights.map((item) => `<li>${escapeHtml(item)}</li>`).join("") : "<li>Open the live advert for the complete responsibilities and requirements.</li>"}</ul></article>
-      <details class="job-disclosure"><summary><span><strong>Read the full advert snapshot</strong><small>Collapsed by default to keep this decision screen calm</small></span><svg aria-hidden="true"><use href="#icon-chevron"></use></svg></summary><div class="disclosure-body"><div class="job-description">${escapeHtml(job.description || "No description is saved yet. Open the live advert to review the details.")}</div></div></details>
+      <article class="detail-card advert-highlights"><h3><svg aria-hidden="true"><use href="#icon-file"></use></svg>What you’d be doing</h3><ul class="highlight-list">${highlights.length ? highlights.map((item) => `<li>${escapeHtml(item)}</li>`).join("") : "<li>Open the live advert for the complete responsibilities and requirements.</li>"}</ul></article>
+      <details class="job-disclosure"><summary><span><strong>Full advert snapshot</strong><small>Only open this when you need the original detail</small></span><svg aria-hidden="true"><use href="#icon-chevron"></use></svg></summary><div class="disclosure-body"><div class="job-description">${escapeHtml(job.description || "No description is saved yet. Open the live advert to review the details.")}</div></div></details>
       <details class="job-disclosure"><summary><span><strong>Application workspace</strong><small>Checklist, dates, CV tools, and private notes</small></span><svg aria-hidden="true"><use href="#icon-chevron"></use></svg></summary><div class="disclosure-body workbench-stack">
         <div class="job-detail-grid">
           <article class="detail-card"><h3><svg aria-hidden="true"><use href="#icon-check"></use></svg>Application checklist</h3><div class="checklist">${checklist.map((item) => `<label class="checklist-item"><input type="checkbox" data-checklist-id="${item.id}" data-job-id="${escapeHtml(job.id)}" ${item.done ? "checked" : ""}/><span><strong>${escapeHtml(item.label)}</strong><span>${escapeHtml(item.detail)}</span></span></label>`).join("")}</div></article>
@@ -749,10 +744,10 @@ function renderJobDialog(jobId) {
         </div>
         <article class="detail-card"><h3><svg aria-hidden="true"><use href="#icon-edit"></use></svg>Private notes</h3><textarea class="job-notes" data-job-notes="${escapeHtml(job.id)}" placeholder="Questions, concerns, recruiter, interview detail…">${escapeHtml(job.notes)}</textarea><div class="notes-footer"><button class="button quiet small" type="button" data-job-action="save-notes" data-job-id="${escapeHtml(job.id)}">Save notes</button></div></article>
       </div></details>
-      <section class="skip-panel" id="skipPanel"><h3>What makes this wrong for Max?</h3><div class="skip-reasons">${["Salary too low", "Wrong location / travel", "Too sales-led", "Too senior", "Contract or temporary", "Poor work-life fit"].map((reason) => `<label class="skip-reason"><input type="checkbox" name="skipReason" value="${escapeHtml(reason)}" />${escapeHtml(reason)}</label>`).join("")}</div><label class="field"><span>Anything else?</span><input id="skipOther" placeholder="A short reason helps future scoring" /></label><div style="display:flex;justify-content:flex-end"><button class="button danger" type="button" data-job-action="confirm-skip" data-job-id="${escapeHtml(job.id)}"><svg aria-hidden="true"><use href="#icon-trash"></use></svg>Remove and learn</button></div></section>
+      <section class="skip-panel" id="skipPanel"><h3>Why isn’t this a fit?</h3><div class="skip-reasons">${["Salary too low", "Wrong location / travel", "Too sales-led", "Too senior", "Contract or temporary", "Poor work-life fit"].map((reason) => `<label class="skip-reason"><input type="checkbox" name="skipReason" value="${escapeHtml(reason)}" />${escapeHtml(reason)}</label>`).join("")}</div><label class="field"><span>Anything else?</span><input id="skipOther" placeholder="A short reason improves future matches" /></label><div style="display:flex;justify-content:flex-end"><button class="button danger" type="button" data-job-action="confirm-skip" data-job-id="${escapeHtml(job.id)}"><svg aria-hidden="true"><use href="#icon-trash"></use></svg>Dismiss job</button></div></section>
     </div>
     <div class="job-decision-bar">
-      <div class="job-decision-secondary">${!closeStatus ? `<button class="button quiet" type="button" data-job-action="toggle-skip" data-job-id="${escapeHtml(job.id)}">Not for Max</button>` : `<button class="button quiet" type="button" data-job-action="restore" data-job-id="${escapeHtml(job.id)}">Restore</button>`}${canSave ? `<button class="button quiet" type="button" data-job-action="save" data-job-id="${escapeHtml(job.id)}"><svg aria-hidden="true"><use href="#icon-sprout"></use></svg>Save</button>` : ""}</div>
+      <div class="job-decision-secondary">${!closeStatus ? `<button class="button quiet" type="button" data-job-action="toggle-skip" data-job-id="${escapeHtml(job.id)}">Dismiss</button>` : `<button class="button quiet" type="button" data-job-action="restore" data-job-id="${escapeHtml(job.id)}">Restore</button>`}${canSave ? `<button class="button quiet" type="button" data-job-action="save" data-job-id="${escapeHtml(job.id)}"><svg aria-hidden="true"><use href="#icon-sprout"></use></svg>Save</button>` : ""}</div>
       <div class="job-decision-primary">${canFollowUp ? `<button class="button quiet" type="button" data-job-action="copy-followup" data-job-id="${escapeHtml(job.id)}"><svg aria-hidden="true"><use href="#icon-copy"></use></svg>Copy follow-up</button>` : ""}${job.url ? `<a class="button quiet" href="${escapeHtml(job.url)}" target="_blank" rel="noreferrer" data-action="advert-opened" data-job-id="${escapeHtml(job.id)}"><svg aria-hidden="true"><use href="#icon-external"></use></svg>Live advert</a>` : ""}${canPrepare ? `<button class="button lime" type="button" data-job-action="prepare" data-job-id="${escapeHtml(job.id)}"><svg aria-hidden="true"><use href="#icon-file"></use></svg>Start application</button>` : ""}${canApply ? `<button class="button lime" type="button" data-job-action="applied" data-job-id="${escapeHtml(job.id)}"><svg aria-hidden="true"><use href="#icon-check"></use></svg>Mark applied</button>` : ""}</div>
     </div>
   </div>`;
@@ -806,6 +801,13 @@ function handleDocumentClick(event) {
   const filter = event.target.closest("[data-filter]");
   if (filter) {
     state.discoverFilter = filter.dataset.filter;
+    state.searchLimit = 60;
+    render();
+    return;
+  }
+  const locationFilter = event.target.closest("[data-search-location]");
+  if (locationFilter) {
+    state.searchLocation = locationFilter.dataset.searchLocation || "all";
     state.searchLimit = 60;
     render();
     return;
@@ -1526,6 +1528,12 @@ function scoreRing(fit) {
   return `<span class="score-ring ${band}" style="--score:${score}" aria-label="${score}% match, ${escapeHtml(bandLabel(band))}"><strong>${score}%</strong><small>match</small></span>`;
 }
 
+function matchBadge(fit) {
+  const score = fit?.score || 0;
+  const band = fit?.band || fitBand(score);
+  return `<span class="match-badge ${band}" aria-label="${score}% CV match"><strong>${score}%</strong><span>CV match</span></span>`;
+}
+
 function metricCard(icon, label, value, detail, tone = "") {
   return `<article class="metric-card"><span class="metric-icon ${tone}"><svg aria-hidden="true"><use href="#icon-${icon}"></use></svg></span><span class="metric-copy"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(detail)}</small></span></article>`;
 }
@@ -1590,6 +1598,10 @@ function metaPill(value, tone = "") {
 
 function filterChip(id, label, count) {
   return `<button class="filter-chip ${state.discoverFilter === id ? "active" : ""}" type="button" data-filter="${id}">${escapeHtml(label)}<span class="chip-count">${count}</span></button>`;
+}
+
+function locationChip(id, label, count) {
+  return `<button class="filter-chip ${state.searchLocation === id ? "active" : ""}" type="button" data-search-location="${id}">${escapeHtml(label)}<span class="chip-count">${count}</span></button>`;
 }
 
 function renderEmpty(icon, title, body, buttonLabel = "", action = "") {
