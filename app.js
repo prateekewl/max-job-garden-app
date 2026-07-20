@@ -108,15 +108,11 @@ async function init() {
     loadDemo();
     return;
   }
-  setAccessStatus("This device does not have a private link yet.", "error");
+  setAccessStatus("Waiting for a personal access link. Owner setup is still required.", "");
 }
 
 function bindStaticEvents() {
   document.querySelector("#retryAccess")?.addEventListener("click", connectPrivate);
-  document.querySelector("#tryDemo")?.addEventListener("click", () => {
-    localStorage.setItem(KEYS.demo, "1");
-    loadDemo();
-  });
   document.querySelector("#refreshData")?.addEventListener("click", () => refreshData());
   document.querySelector("#notificationButton")?.addEventListener("click", () => navigate("settings", "alerts"));
   document.querySelector("#openAddJob")?.addEventListener("click", openAddJobDialog);
@@ -161,7 +157,7 @@ async function connectPrivate() {
   const api = localStorage.getItem(KEYS.api);
   const access = localStorage.getItem(KEYS.access);
   if (!api || !access) {
-    setAccessStatus("Open the private link emailed to Max or Prateek first.", "error");
+    setAccessStatus("No personal access is stored on this device yet. Complete owner setup or open an emailed link.", "");
     return;
   }
 

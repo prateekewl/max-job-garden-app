@@ -12,11 +12,11 @@
     >
     <title>Max's Job Garden</title>
     <meta name="description" content="A private, focused job search workspace for Max.">
-    <script src="./bootstrap.js?v=20260720"></script>
-    <link rel="manifest" href="./manifest.webmanifest?v=20260720">
+    <script src="./bootstrap.js?v=20260720-3"></script>
+    <link rel="manifest" href="./manifest.webmanifest?v=20260720-3">
     <link rel="icon" href="./assets/garden-mark.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" sizes="192x192" href="./assets/garden-mark-192.png">
-    <link rel="stylesheet" href="./styles.css?v=20260720">
+    <link rel="stylesheet" href="./styles.css?v=20260720-3">
   </head>
   <body>
     <a class="skip-link" href="#viewContent">Skip to the workspace</a>
@@ -32,21 +32,23 @@
             <span class="brand-mark"><svg aria-hidden="true"><use href="#icon-sprout"></use></svg></span>
             <span>Max's Job Garden</span>
           </div>
-          <p class="eyebrow">Private workspace</p>
-          <h1 id="accessTitle">A calmer way to find the right next job.</h1>
-          <p class="access-intro">This garden only unlocks from the personal link emailed to Max or Prateek. The public page contains no CV, contact details, or application history.</p>
+          <p class="eyebrow">Private job-search workspace</p>
+          <h1 id="accessTitle">Connect this device to the garden.</h1>
+          <p class="access-intro">The website is live, but real jobs only appear after this browser opens Max’s or Prateek’s personal access link. That keeps the CV, contact details, settings, and application history out of the public website.</p>
           <div class="access-status" id="accessStatus" role="status">
             <span class="status-dot"></span>
             <span>Checking this device for private access…</span>
           </div>
           <div class="access-actions">
-            <button class="button primary" id="retryAccess" type="button">
+            <a class="button primary" href="https://github.com/prateekewl/max-job-garden" target="_blank" rel="noopener noreferrer">
+              Owner setup guide
+            </a>
+            <button class="button quiet" id="retryAccess" type="button">
               <svg aria-hidden="true"><use href="#icon-refresh"></use></svg>
-              Try private access again
+              Check this device again
             </button>
-            <button class="button quiet" id="tryDemo" type="button">Preview with sample data</button>
           </div>
-          <p class="access-help">Lost the link? Ask Prateek to resend Max’s private access from Settings.</p>
+          <p class="access-help"><strong>Prateek:</strong> complete the one-time owner setup to email both private links. <strong>Max:</strong> open the personal link emailed to you. Sample data is available only from the separate demo URL.</p>
         </div>
       </section>
     </div>
@@ -222,6 +224,6 @@
     </svg>
 
     <script src="./assets/jspdf.umd.min.js"></script>
-    <script type="module" src="./app.js?v=20260720"></script>
+    <script type="module" src="./app.js?v=20260720-3"></script>
   </body>
 </html>
