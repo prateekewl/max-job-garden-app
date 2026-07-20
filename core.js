@@ -14,22 +14,35 @@ export const APPLICATION_STATUSES = new Set(["applied", "follow_up", "interview"
 
 export const DEFAULT_PREFERENCES = Object.freeze({
   targetTitles: [
-    "Customer Success Manager",
-    "Customer Success Team Lead",
     "Service Delivery Manager",
     "Service Delivery Lead",
+    "Service Delivery Coordinator",
+    "Service Delivery Specialist",
     "Client Services Manager",
+    "Client Services Coordinator",
+    "Client Services Executive",
     "Client Operations Manager",
-    "Account Manager",
+    "Client Operations Coordinator",
+    "Client Operations Specialist",
+    "Client Operations Executive",
+    "Service Operations Manager",
+    "Service Operations Coordinator",
+    "Workforce Operations Manager",
+    "Workforce Operations Coordinator",
+    "Onboarding Manager",
+    "Onboarding Coordinator",
     "Implementation Manager",
     "Implementation Consultant",
-    "Onboarding Manager",
+    "Implementation Coordinator",
+    "Account Manager",
+    "Account Coordinator",
+    "Client Relationship Manager",
+    "Customer Success Manager",
+    "Customer Success Team Lead",
     "Supplier Engagement Manager",
     "Customer Experience Manager",
-    "Service Operations Manager",
     "Customer Operations Manager",
     "Client Onboarding Manager",
-    "Client Relationship Manager",
   ],
   includeTerms: [
     "client relationship",
@@ -107,9 +120,12 @@ const ROLE_TERMS = [
   "service manager",
 ];
 
-const HARD_TITLE_MISMATCH = /\b(?:executive|personal|administrative) assistant\b|\bassistant to\b|\bproject coordinator\b|\bprogramme coordinator\b|\bprogram coordinator\b|\bai operations\b|\bmarketing operations\b|\b(?:developer|engineer|architect|designer)\b|\btechnical support\b|\bhelp\s?desk\b|\bcustomer (?:service|support) (?:advisor|agent|representative)\b|\b(?:sales|channel|distribution|commercial|advertising|affiliate) account manager\b|\baccount executive\b|\bbusiness development\b/;
-const PRIMARY_ROLE_TITLE = /\b(?:customer|client) success (?:manager|lead|team lead|executive)\b|\bservice delivery (?:manager|lead)\b|\bclient services? (?:manager|lead)\b|\b(?:manager|lead)[, -]+client services?\b|\bclient operations (?:manager|lead)\b|\bcustomer operations (?:manager|lead)\b|\bimplementation (?:manager|consultant|lead)\b|\bonboarding (?:manager|consultant|lead)\b|\b(?:manager|lead)\b.*\bclient onboarding\b|\bcustomer experience (?:manager|lead)\b|\bclient relationship manager\b/;
-const ADJACENT_ROLE_TITLE = /\baccount manager\b|\bsupplier (?:engagement|relationship) manager\b|\bvendor relationship manager\b|\bworkforce (?:operations|planning) (?:manager|lead)\b|\bservice operations (?:manager|lead)\b|\bcustomer (?:support|service) (?:manager|lead|team lead)\b|\bteam (?:leader|lead)\b.*\bcustomer (?:support|service|operations)\b/;
+const HARD_TITLE_MISMATCH = /\b(?:executive|personal|administrative) assistant\b|\bassistant to\b|\bproject coordinator\b|\bprogramme coordinator\b|\bprogram coordinator\b|\b(?:ai|marketing|security|clinical|product|finance|financial|legal) operations\b|\b(?:technical|ai|workday|payroll|erp|software|systems?) implementation\b|\b(?:developer|engineer|architect|designer)\b|\btechnical support\b|\bhelp\s?desk\b|\bcustomer (?:service|support) (?:advisor|agent|representative)\b|\b(?:sales|channel|distribution|commercial|advertising|affiliate) account manager\b|\baccount executive\b|\bbusiness development\b/;
+const ROLE_LEVEL = "(?:manager|lead|team lead|coordinator|specialist|executive|officer)";
+const CORE_DELIVERY_ROLE_TITLE = new RegExp(`\\bservice delivery ${ROLE_LEVEL}\\b|\\bclient services? ${ROLE_LEVEL}\\b|\\b${ROLE_LEVEL}(?:,? [a-z]+){0,2} client services?\\b|\\bclient operations ${ROLE_LEVEL}\\b|\\bcustomer operations ${ROLE_LEVEL}\\b|\\bservice operations ${ROLE_LEVEL}\\b|\\bworkforce (?:operations|planning) ${ROLE_LEVEL}\\b`);
+const PRIMARY_ROLE_TITLE = new RegExp(`${CORE_DELIVERY_ROLE_TITLE.source}|\\b(?:customer|client) success ${ROLE_LEVEL}\\b|\\bimplementation (?:manager|consultant|lead|coordinator|specialist)\\b|\\bonboarding (?:manager|consultant|lead|coordinator|specialist)\\b|\\b${ROLE_LEVEL}\\b.*\\bclient onboarding\\b|\\bcustomer experience (?:manager|lead|coordinator)\\b|\\bclient relationship (?:manager|lead|coordinator)\\b`);
+const ADJACENT_ROLE_TITLE = /\baccount (?:manager|coordinator|specialist)\b|\bsupplier (?:engagement|relationship) manager\b|\bvendor relationship manager\b|\bcustomer (?:support|service) (?:manager|lead|team lead)\b|\bteam (?:leader|lead)\b.*\bcustomer (?:support|service|operations)\b/;
+const GENERIC_OPERATIONS_TITLE = /\boperations (?:manager|lead|coordinator|specialist|executive|officer)\b/;
 const CLIENT_DELIVERY_EVIDENCE = [
   /\bclient(?:s|'s)?\b|\bcustomer(?:s|'s)?\b/,
   /\bservice delivery\b|\bservice level\b|\bsla\b/,
@@ -161,7 +177,7 @@ export function normaliseJob(input = {}) {
   return {
     ...input,
     id: String(input.id || input.jobId || input.sourceId || slugify(`${input.company || "company"}-${input.title || "role"}-${input.url || discoveredAt || Date.now()}`)),
-    title: String(input.title || "Untitled role").trim(),
+    title: expandJobTitle(String(input.title || "Untitled role").trim()),
     company: String(input.company || "Company not listed").trim(),
     location: String(input.location || "Location not listed").trim(),
     description: stripHtml(String(input.description || input.notes || "")).trim(),
@@ -237,7 +253,12 @@ export function isMaxSearchEligible(input = {}) {
   const title = String(input.title || "").toLowerCase().replace(/\s+/g, " ").trim();
   if (!title || HARD_TITLE_MISMATCH.test(title) || hasHardCvRequirementMismatch(input)) return false;
   if (/\btechnical account manager\b|\bstrategic account manager\b|\bkey account manager\b|\bbusiness relationship manager\b/.test(title)) return false;
-  return PRIMARY_ROLE_TITLE.test(title) || ADJACENT_ROLE_TITLE.test(title);
+  if (PRIMARY_ROLE_TITLE.test(title) || ADJACENT_ROLE_TITLE.test(title)) return true;
+  if (GENERIC_OPERATIONS_TITLE.test(title)) {
+    const body = `${title} ${String(input.description || "").toLowerCase()}`;
+    return CLIENT_DELIVERY_EVIDENCE.filter((pattern) => pattern.test(body)).length >= 2;
+  }
+  return false;
 }
 
 function hasHardCvRequirementMismatch(input = {}) {
@@ -300,6 +321,10 @@ export function scoreJob(jobInput, preferenceInput = DEFAULT_PREFERENCES, feedba
   const matchedIncludeTerms = uniqueList(preferences.includeTerms.filter((term) => body.includes(term.toLowerCase())));
   breakdown.experience = Math.min(20, matchedRoleTerms.length * 3 + matchedIncludeTerms.length * 2);
   if (matchedRoleTerms.length) reasons.push(`Uses ${humanList(matchedRoleTerms.slice(0, 2))}`);
+  if (CORE_DELIVERY_ROLE_TITLE.test(title)) {
+    breakdown.bonus += 4;
+    reasons.unshift("Direct service delivery / client operations lane");
+  }
   if (/\bgerman\b|\bdach\b/.test(body)) {
     breakdown.bonus += 5;
     reasons.push("German / DACH advantage");
@@ -601,6 +626,10 @@ export function daysSince(value, now = new Date()) {
 export function isJobFresh(input = {}, maxDays = 7, now = new Date()) {
   const age = daysSince(input.postedDate || input.discoveredAt, now);
   return age !== null && age <= Math.max(0, Number(maxDays) || 0);
+}
+
+function expandJobTitle(value = "") {
+  return String(value).replace(/\bMM\s*\/\s*ENT\b/gi, "Mid-Market / Enterprise");
 }
 
 export function parseDate(value) {

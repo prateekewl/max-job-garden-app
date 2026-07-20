@@ -72,7 +72,7 @@ const state = {
   sheetUrl: "",
   generatedAt: "",
   feedSourceCount: 0,
-  feedFreshnessDays: 7,
+  feedFreshnessDays: 30,
   connected: false,
   offline: false,
   syncing: false,
@@ -371,6 +371,8 @@ function renderDiscover(jobs) {
     const age = jobAge(job);
     if (state.discoverFilter === "today") return age === 0;
     if (state.discoverFilter === "three-days") return age <= 3;
+    if (state.discoverFilter === "seven-days") return age <= 7;
+    if (state.discoverFilter === "fourteen-days") return age <= 14;
     if (state.discoverFilter === "remote") return job.workPattern === "remote" || /remote/i.test(job.location);
     return age <= state.feedFreshnessDays;
   }), state.sort);
@@ -378,6 +380,8 @@ function renderDiscover(jobs) {
   const counts = {
     today: freshCandidates.filter((job) => jobAge(job) === 0).length,
     threeDays: freshCandidates.filter((job) => jobAge(job) <= 3).length,
+    sevenDays: freshCandidates.filter((job) => jobAge(job) <= 7).length,
+    fourteenDays: freshCandidates.filter((job) => jobAge(job) <= 14).length,
     week: freshCandidates.length,
     remote: freshCandidates.filter((job) => job.workPattern === "remote" || /remote/i.test(job.location)).length,
     saved: trackedCandidates.filter((job) => job.status === "saved").length,
@@ -394,7 +398,7 @@ function renderDiscover(jobs) {
   const emptyTitle = recommendedMode ? "No strong matches in this view" : "No jobs match those filters";
   const emptyBody = recommendedMode
     ? "Search the wider CV-matched role pool to find more credible options."
-    : "Try a shorter keyword, another location, or the full seven-day window. Unrelated professions are filtered out.";
+    : "Try a shorter keyword, another location, or the full 30-day window. Unrelated professions are filtered out.";
 
   return `
     <div class="page-stack">
@@ -419,7 +423,7 @@ function renderDiscover(jobs) {
             ${recommendedMode ? `<button class="button quiet" type="button" data-view="settings" data-settings-section="search"><svg aria-hidden="true"><use href="#icon-filter"></use></svg>Search profile</button>` : ""}
           </div>
           ${recommendedMode ? "" : `<div class="filter-group"><span class="filter-label">Location</span><div class="filter-strip location-strip" role="group" aria-label="Filter by location">${locationChip("all", "All", counts.week)}${locationChip("glasgow", "Glasgow & nearby", counts.glasgow)}${locationChip("remote-uk", "Remote UK", counts.remoteUk)}${locationChip("edinburgh", "Edinburgh", counts.edinburgh)}${locationChip("other-remote", "Other remote", Math.max(0, counts.remote - counts.remoteUk))}</div></div>`}
-          <div class="filter-group"><span class="filter-label">Posted</span><div class="filter-strip" role="group" aria-label="Filter by date">${filterChip("week", `Past ${state.feedFreshnessDays} days`, counts.week)}${filterChip("today", "Today", counts.today)}${filterChip("three-days", "Past 72 hours", counts.threeDays)}${recommendedMode ? `${filterChip("remote", "Remote", counts.remote)}${filterChip("saved", "Saved", counts.saved)}` : ""}</div></div>
+          <div class="filter-group"><span class="filter-label">Posted</span><div class="filter-strip" role="group" aria-label="Filter by date">${filterChip("week", `Past ${state.feedFreshnessDays} days`, counts.week)}${filterChip("fourteen-days", "Past 14 days", counts.fourteenDays)}${filterChip("seven-days", "Past 7 days", counts.sevenDays)}${filterChip("three-days", "Past 72 hours", counts.threeDays)}${filterChip("today", "Today", counts.today)}${recommendedMode ? `${filterChip("remote", "Remote", counts.remote)}${filterChip("saved", "Saved", counts.saved)}` : ""}</div></div>
           ${recommendedMode ? "" : `<div class="keyword-suggestions" aria-label="Suggested searches"><span>Popular searches</span>${["client services", "service delivery", "customer success", "onboarding", "account manager"].map((term) => `<button type="button" data-search-query="${escapeHtml(term)}">${escapeHtml(term)}</button>`).join("")}</div>`}
         </div>
         <div class="results-line"><span><strong>${filtered.length}</strong> opportunit${filtered.length === 1 ? "y" : "ies"}${!recommendedMode && filtered.length > visible.length ? ` · showing ${visible.length}` : ""}</span><span>${state.scout.lastRunAt ? `Updated ${timeAgo(state.scout.lastRunAt)}` : "Updates automatically"}</span></div>
@@ -1292,7 +1296,7 @@ async function fetchLocalSource(source) {
     if (!response.ok) throw new Error(`Curated job watch returned ${response.status}`);
     const payload = await response.json();
     state.feedSourceCount = (payload.sources || []).length || state.feedSourceCount;
-    state.feedFreshnessDays = Math.max(1, Math.min(7, Number(payload.freshnessWindowDays) || 7));
+    state.feedFreshnessDays = Math.max(1, Math.min(30, Number(payload.freshnessWindowDays) || 30));
     state.searchIndex = (payload.searchJobs || payload.jobs || []).map(normaliseJob);
     state.generatedAt = payload.generatedAt || state.generatedAt;
     return (payload.jobs || []).map(normaliseJob);
@@ -1516,7 +1520,10 @@ async function enableNotifications() {
 
 async function notifyNewJobs(freshJobs) {
   if (!("Notification" in window) || Notification.permission !== "granted") return;
-  const decorated = decorateJobs(freshJobs, state.preferences, state.jobs).sort((a, b) => b.fit.score - a.fit.score);
+  const decorated = decorateJobs(freshJobs.filter((job) => {
+    const age = jobAge(job);
+    return age !== null && age <= 3;
+  }), state.preferences, state.jobs).sort((a, b) => b.fit.score - a.fit.score);
   const best = decorated[0];
   if (!best || best.fit.score < state.preferences.alertThreshold) return;
   const extra = decorated.filter((job) => job.fit.score >= state.preferences.alertThreshold).length - 1;
