@@ -27,7 +27,7 @@ jobs:
       - name: Build an allow-listed Pages artifact
         run: |
           install -d _site/assets
-          cp index.html bootstrap.js styles.css app.js core.js pdf.js demo-data.js manifest.webmanifest sw.js _site/
+          cp index.html bootstrap.js styles.css app.js core.js pdf.js demo-data.js manifest.webmanifest sw.js jobs.json _site/
           cp assets/garden-mark.svg assets/garden-mark-192.png assets/garden-mark-512.png assets/garden-companions.jpg assets/jspdf.umd.min.js _site/assets/
           cp index.html _site/404.html
           touch _site/.nojekyll
