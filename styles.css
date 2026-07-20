@@ -470,6 +470,8 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
 .profile-fact svg { width: 15px; height: 15px; color: var(--green); }
 .cv-job-card h3, .cv-preview-card h3, .message-card h3 { margin: 0 0 5px; font-size: 0.9rem; }
 .cv-job-card > p, .cv-preview-card > p, .message-card > p { margin: 0 0 14px; color: var(--muted); font-size: 0.72rem; line-height: 1.5; }
+.cv-storage-status { display: inline-flex; min-height: 28px; align-items: center; margin: 14px 0 2px; border-radius: 999px; padding: 0 9px; color: var(--amber); background: var(--surface-amber); font-size: 0.67rem; font-weight: 760; }
+.cv-storage-status.ready { color: var(--green); background: var(--surface-green); }
 .cv-unlock-note { margin: -3px 2px 2px !important; color: var(--muted); font-size: 0.68rem !important; line-height: 1.45 !important; text-align: center; }
 .job-picker { width: 100%; min-height: 42px; border: 1px solid var(--line); border-radius: 11px; padding: 0 34px 0 11px; color: var(--ink); background: var(--surface-raised); font-size: 0.78rem; }
 .cv-actions { display: grid; gap: 8px; margin-top: 12px; }
