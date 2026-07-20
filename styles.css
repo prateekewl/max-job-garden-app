@@ -470,6 +470,7 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
 .profile-fact svg { width: 15px; height: 15px; color: var(--green); }
 .cv-job-card h3, .cv-preview-card h3, .message-card h3 { margin: 0 0 5px; font-size: 0.9rem; }
 .cv-job-card > p, .cv-preview-card > p, .message-card > p { margin: 0 0 14px; color: var(--muted); font-size: 0.72rem; line-height: 1.5; }
+.cv-unlock-note { margin: -3px 2px 2px !important; color: var(--muted); font-size: 0.68rem !important; line-height: 1.45 !important; text-align: center; }
 .job-picker { width: 100%; min-height: 42px; border: 1px solid var(--line); border-radius: 11px; padding: 0 34px 0 11px; color: var(--ink); background: var(--surface-raised); font-size: 0.78rem; }
 .cv-actions { display: grid; gap: 8px; margin-top: 12px; }
 .tailoring-grid { display: grid; grid-template-columns: 1fr 1fr; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; }
@@ -515,6 +516,18 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
 .field input, .field select { min-height: 42px; }
 .field textarea { min-height: 92px; resize: vertical; line-height: 1.5; }
 .field input:focus, .field select:focus, .field textarea:focus, .inline-input:focus { border-color: var(--green); outline: 0; box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 18%, transparent); }
+.employment-history { display: grid; gap: 12px; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--line); }
+.employment-history-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.employment-history-heading h3 { margin: 0 0 4px; font-size: 0.9rem; }
+.employment-history-heading p { max-width: 620px; margin: 0; color: var(--muted); font-size: 0.7rem; line-height: 1.5; }
+.history-count { display: inline-flex; min-height: 28px; flex: 0 0 auto; align-items: center; border-radius: 999px; padding: 0 9px; color: var(--green); background: var(--surface-green); font-size: 0.68rem; font-weight: 760; }
+.employment-role-list { display: grid; gap: 10px; }
+.employment-role { border: 1px solid var(--line); border-radius: 14px; padding: 15px; background: color-mix(in srgb, var(--surface-muted) 45%, var(--surface-raised)); }
+.employment-role-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 13px; }
+.employment-role-header > strong { font-size: 0.76rem; }
+.employment-empty { display: grid; min-height: 116px; place-content: center; justify-items: center; border: 1px dashed var(--line-strong); border-radius: 14px; padding: 22px; color: var(--muted); text-align: center; }
+.employment-empty strong { margin-bottom: 5px; color: var(--ink); font-size: 0.78rem; }
+.employment-empty span { max-width: 420px; font-size: 0.7rem; line-height: 1.5; }
 .check-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .check-control { display: flex; min-height: 42px; align-items: center; gap: 9px; border: 1px solid var(--line); border-radius: 11px; padding: 9px 11px; color: var(--ink-soft); background: var(--surface-raised); font-size: 0.74rem; font-weight: 650; }
 .check-control input { width: 17px; height: 17px; margin: 0; accent-color: var(--green); }

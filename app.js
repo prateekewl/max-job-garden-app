@@ -536,7 +536,7 @@ function renderCv(jobs) {
             <h3>Tailor for a job</h3><p>Choose the application. Dates, employers, titles, and responsibilities remain factual.</p>
             <select class="job-picker" id="cvJobPicker" aria-label="Choose a job for the CV">${eligible.map((job) => `<option value="${escapeHtml(job.id)}" ${job.id === selected?.id ? "selected" : ""}>${escapeHtml(job.company)} — ${escapeHtml(job.title)}</option>`).join("")}</select>
             <div class="cv-actions">
-              <button class="button primary full-button" type="button" data-action="download-cv" ${selected && profile.roles?.length ? "" : "disabled"}><svg aria-hidden="true"><use href="#icon-download"></use></svg>Download matched PDF</button>
+              ${!selected ? `<button class="button primary full-button" type="button" data-view="discover"><svg aria-hidden="true"><use href="#icon-search"></use></svg>Choose a job first</button>` : profile.roles?.length ? `<button class="button primary full-button" type="button" data-action="download-cv"><svg aria-hidden="true"><use href="#icon-download"></use></svg>Download matched PDF</button>` : `<button class="button primary full-button" type="button" data-view="settings" data-settings-section="profile"><svg aria-hidden="true"><use href="#icon-plus"></use></svg>Add employment history</button><p class="cv-unlock-note">The PDF needs at least one previous role. Add it once and every matched download unlocks.</p>`}
               ${selected?.url ? `<a class="button quiet full-button" href="${escapeHtml(selected.url)}" target="_blank" rel="noreferrer"><svg aria-hidden="true"><use href="#icon-external"></use></svg>Open job advert</a>` : ""}
             </div>
           </article>
@@ -651,6 +651,13 @@ function renderSettings() {
                 <label class="field full"><span>Languages <small>one per line</small></span><textarea name="languages" rows="3">${escapeHtml((profile.languages || []).join("\n"))}</textarea></label>
                 <label class="field full"><span>Education</span><textarea name="education" rows="3">${escapeHtml(profile.education || "")}</textarea></label>
               </div>
+              <section class="employment-history" id="employmentHistory" aria-labelledby="employmentHistoryTitle">
+                <div class="employment-history-heading"><div><h3 id="employmentHistoryTitle">Employment history</h3><p>Required for the matched PDF. This stays on this device unless the private shared workspace is connected.</p></div><span class="history-count">${profile.roles?.length || 0} role${profile.roles?.length === 1 ? "" : "s"}</span></div>
+                <div class="employment-role-list" id="employmentRoles">
+                  ${profile.roles?.length ? profile.roles.map(renderEmploymentRoleEditor).join("") : `<div class="employment-empty"><strong>No employment history added yet</strong><span>Add Max’s latest role first. More positions can be added in any order.</span></div>`}
+                </div>
+                <button class="button quiet" type="button" data-profile-role-action="add"><svg aria-hidden="true"><use href="#icon-plus"></use></svg>Add a position</button>
+              </section>
               <div class="private-note" style="margin-top:14px"><svg aria-hidden="true"><use href="#icon-lock"></use></svg><span>Employment facts stay on this device. The CV tool changes emphasis, never employers, dates, titles, or qualifications.</span></div>
               <div class="settings-card-footer"><button class="button primary" type="submit"><svg aria-hidden="true"><use href="#icon-check"></use></svg>Save CV facts</button></div>
             </form>
@@ -684,6 +691,20 @@ function renderJobCard(job, options = {}) {
     <div class="job-card-signal"><span>Why it could fit</span><strong>${escapeHtml(job.fit.reasons[0] || "Relevant experience may transfer")}</strong>${job.fit.concerns[0] ? `<small>${escapeHtml(job.fit.concerns[0])}</small>` : ""}</div>
     <div class="job-card-footer"><span>${escapeHtml(job.source || "Job source")}</span><strong>Review job<svg aria-hidden="true"><use href="#icon-arrow"></use></svg></strong></div>
   </button>`;
+}
+
+function renderEmploymentRoleEditor(role = {}, index = 0) {
+  const bullets = Array.isArray(role.bullets) ? role.bullets.join("\n") : String(role.bullets || "");
+  return `<article class="employment-role" data-profile-role>
+    <div class="employment-role-header"><strong>Position <span class="employment-role-number">${index + 1}</span></strong><button class="button quiet small" type="button" data-profile-role-action="remove"><svg aria-hidden="true"><use href="#icon-trash"></use></svg>Remove</button></div>
+    <div class="field-grid">
+      <label class="field"><span>Job title</span><input data-role-field="title" value="${escapeHtml(role.title || "")}" required placeholder="Service Delivery Manager" /></label>
+      <label class="field"><span>Company</span><input data-role-field="company" value="${escapeHtml(role.company || "")}" required placeholder="Company name" /></label>
+      <label class="field"><span>Location</span><input data-role-field="location" value="${escapeHtml(role.location || "")}" placeholder="Glasgow · Remote" /></label>
+      <label class="field"><span>Dates</span><input data-role-field="dates" value="${escapeHtml(role.dates || "")}" required placeholder="07/2025 – 06/2026" /></label>
+      <label class="field full"><span>Achievements and responsibilities <small>one per line</small></span><textarea data-role-field="bullets" rows="5" required placeholder="Managed day-to-day client relationships…\nCoordinated service delivery across multiple accounts…">${escapeHtml(bullets)}</textarea></label>
+    </div>
+  </article>`;
 }
 
 function renderPipelineCard(job) {
@@ -796,6 +817,12 @@ function handleDocumentClick(event) {
   const jobButton = event.target.closest("[data-open-job]");
   if (jobButton) {
     openJob(jobButton.dataset.openJob);
+    return;
+  }
+  const profileRoleAction = event.target.closest("[data-profile-role-action]");
+  if (profileRoleAction) {
+    if (profileRoleAction.dataset.profileRoleAction === "add") addProfileRoleEditor();
+    if (profileRoleAction.dataset.profileRoleAction === "remove") removeProfileRoleEditor(profileRoleAction);
     return;
   }
   const filter = event.target.closest("[data-filter]");
@@ -1085,6 +1112,13 @@ function savePreferencesForm(form) {
 
 function saveProfileForm(form) {
   const data = Object.fromEntries(new FormData(form).entries());
+  const roles = [...form.querySelectorAll("[data-profile-role]")].map((editor) => ({
+    title: editor.querySelector('[data-role-field="title"]')?.value.trim() || "",
+    company: editor.querySelector('[data-role-field="company"]')?.value.trim() || "",
+    location: editor.querySelector('[data-role-field="location"]')?.value.trim() || "",
+    dates: editor.querySelector('[data-role-field="dates"]')?.value.trim() || "",
+    bullets: splitLines(editor.querySelector('[data-role-field="bullets"]')?.value || ""),
+  })).filter((role) => role.title && role.company && role.dates && role.bullets.length);
   const profile = {
     ...state.profile,
     ...data,
@@ -1092,12 +1126,41 @@ function saveProfileForm(form) {
     tools: splitList(data.tools),
     certifications: splitLines(data.certifications),
     languages: splitLines(data.languages),
+    roles,
   };
   state.profile = profile;
   saveLocalWorkspace();
   postAction("save_profile", { profile });
   render();
-  showToast("CV facts saved", "Future PDFs and messages will use the updated profile.", "success");
+  showToast("CV facts saved", roles.length ? `Matched PDF unlocked with ${roles.length} role${roles.length === 1 ? "" : "s"}.` : "Add employment history to unlock the matched PDF.", roles.length ? "success" : "error");
+}
+
+function addProfileRoleEditor() {
+  const list = document.querySelector("#employmentRoles");
+  if (!list) return;
+  list.querySelector(".employment-empty")?.remove();
+  const index = list.querySelectorAll("[data-profile-role]").length;
+  list.insertAdjacentHTML("beforeend", renderEmploymentRoleEditor({}, index));
+  refreshEmploymentRoleNumbers();
+  list.querySelector("[data-profile-role]:last-child input")?.focus();
+}
+
+function removeProfileRoleEditor(button) {
+  const list = document.querySelector("#employmentRoles");
+  button.closest("[data-profile-role]")?.remove();
+  if (!list) return;
+  if (!list.querySelector("[data-profile-role]")) list.innerHTML = `<div class="employment-empty"><strong>No employment history added yet</strong><span>Add Max’s latest role first. More positions can be added in any order.</span></div>`;
+  refreshEmploymentRoleNumbers();
+}
+
+function refreshEmploymentRoleNumbers() {
+  document.querySelectorAll("#employmentRoles [data-profile-role]").forEach((editor, index) => {
+    const number = editor.querySelector(".employment-role-number");
+    if (number) number.textContent = String(index + 1);
+  });
+  const count = document.querySelectorAll("#employmentRoles [data-profile-role]").length;
+  const countLabel = document.querySelector(".history-count");
+  if (countLabel) countLabel.textContent = `${count} role${count === 1 ? "" : "s"}`;
 }
 
 function saveSourceForm(form) {
