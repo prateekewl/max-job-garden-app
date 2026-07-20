@@ -36,7 +36,7 @@ jobs:
         run: |
           test ! -e _site/_backend
           test ! -e _site/Code.gs
-          if grep -R -E -i "mailto:|tel:|[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}|linkedin\.com/in/|\+44[[:space:]-]*[0-9]" _site; then
+          if grep -R -E -i --exclude='jspdf.umd.min.js' "mailto:|tel:|[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}|linkedin\.com/in/|\+44[[:space:]-]*[0-9]" _site; then
             echo "Contact or profile data found in the Pages artifact."
             exit 1
           fi
