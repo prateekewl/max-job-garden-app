@@ -15,11 +15,15 @@ export const APPLICATION_STATUSES = new Set(["applied", "follow_up", "interview"
 export const DEFAULT_PREFERENCES = Object.freeze({
   targetTitles: [
     "Customer Success Manager",
+    "Customer Success Team Lead",
     "Service Delivery Manager",
+    "Service Delivery Lead",
     "Client Services Manager",
     "Client Operations Manager",
+    "Customer Support Operations Manager",
     "Account Manager",
     "Implementation Manager",
+    "Onboarding Manager",
     "Supplier Engagement Manager",
     "Customer Experience Manager",
   ],
@@ -193,7 +197,8 @@ export function isMaxLocationEligible(input = {}) {
 
 export function isMaxRoleEligible(input = {}) {
   const title = String(input.title || "").toLowerCase();
-  return /\bcustomer success manager\b|\bclient success manager\b|\bservice delivery manager\b|\bclient services manager\b|\bclient operations manager\b|\bcustomer operations manager\b|\baccount manager\b|\bimplementation manager\b|\bimplementation consultant\b|\bsupplier engagement manager\b|\bcustomer experience manager\b/.test(title);
+  if (/\bsales account manager\b|\bchannel account manager\b|\bdistribution accounts? manager\b|\btechnical account manager\b/.test(title)) return false;
+  return /\bcustomer success (?:manager|lead|team lead|executive)\b|\bclient success (?:manager|lead)\b|\bservice delivery (?:manager|lead)\b|\bclient services manager\b|\bmanager,? client services\b|\bclient operations (?:manager|lead)\b|\bcustomer operations (?:manager|lead)\b|\bcustomer (?:support|service)(?: & technical support)? (?:manager|lead|team lead)\b|\bteam (?:leader|lead).*\bcustomer (?:support|service|operations)\b|\baccount manager\b|\bimplementation (?:manager|consultant|lead)\b|\bonboarding (?:manager|consultant|lead)\b|\bsupplier engagement manager\b|\bcustomer experience manager\b|\bclient relationship manager\b/.test(title);
 }
 
 export function normaliseStatus(value = "new") {
@@ -521,6 +526,11 @@ export function daysSince(value, now = new Date()) {
   const cleanDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const cleanNow = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   return Math.max(0, Math.round((cleanNow - cleanDate) / 86400000));
+}
+
+export function isJobFresh(input = {}, maxDays = 7, now = new Date()) {
+  const age = daysSince(input.postedDate || input.discoveredAt, now);
+  return age !== null && age <= Math.max(0, Number(maxDays) || 0);
 }
 
 export function parseDate(value) {

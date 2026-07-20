@@ -8,6 +8,7 @@ import {
   buildMessage,
   buildTailoring,
   dateKey,
+  daysSince,
   decorateJobs,
   deriveStats,
   escapeHtml,
@@ -66,12 +67,14 @@ const state = {
   scout: {},
   sheetUrl: "",
   generatedAt: "",
+  feedSourceCount: 0,
+  feedFreshnessDays: 7,
   connected: false,
   offline: false,
   syncing: false,
   search: "",
-  discoverFilter: "all",
-  sort: "recommended",
+  discoverFilter: "week",
+  sort: "newest",
   selectedJobId: "",
   cvJobId: "",
   messageKind: "recruiter",
@@ -345,48 +348,58 @@ function renderDiscover(jobs, stats) {
   const filtered = sortJobs(candidates.filter((job) => {
     const haystack = `${job.title} ${job.company} ${job.location} ${job.description} ${job.source}`.toLowerCase();
     if (search && !haystack.includes(search)) return false;
-    if (state.discoverFilter === "new") return job.status === "new" && !job.seenAt;
-    if (state.discoverFilter === "top") return job.fit.score >= state.preferences.alertThreshold;
-    if (state.discoverFilter === "remote") return job.workPattern === "remote" || /remote/i.test(job.location);
-    if (state.discoverFilter === "salary") return (job.salaryMax || job.salaryMin || 0) >= state.preferences.preferredSalary;
     if (state.discoverFilter === "saved") return job.status === "saved";
-    return true;
+    const age = jobAge(job);
+    if (age === null || age > state.feedFreshnessDays) return false;
+    if (state.discoverFilter === "today") return age === 0;
+    if (state.discoverFilter === "three-days") return age <= 3;
+    if (state.discoverFilter === "remote") return job.workPattern === "remote" || /remote/i.test(job.location);
+    return age <= state.feedFreshnessDays;
   }), state.sort);
+  const freshCandidates = candidates.filter((job) => {
+    const age = jobAge(job);
+    return age !== null && age <= state.feedFreshnessDays;
+  });
   const counts = {
-    all: candidates.length,
-    new: candidates.filter((job) => job.status === "new" && !job.seenAt).length,
-    top: candidates.filter((job) => job.fit.score >= state.preferences.alertThreshold).length,
-    remote: candidates.filter((job) => job.workPattern === "remote" || /remote/i.test(job.location)).length,
-    salary: candidates.filter((job) => (job.salaryMax || job.salaryMin || 0) >= state.preferences.preferredSalary).length,
+    today: freshCandidates.filter((job) => jobAge(job) === 0).length,
+    threeDays: freshCandidates.filter((job) => jobAge(job) <= 3).length,
+    week: freshCandidates.length,
+    remote: freshCandidates.filter((job) => job.workPattern === "remote" || /remote/i.test(job.location)).length,
     saved: candidates.filter((job) => job.status === "saved").length,
+    unseen: freshCandidates.filter((job) => job.status === "new" && !job.seenAt).length,
   };
+  const checkedSources = state.feedSourceCount || state.scout.sourceCount || 1;
 
   return `
     <div class="page-stack">
       <section class="section">
         <div class="section-heading">
-          <div><p class="eyebrow">Scout found, Max decides</p><h2>Fresh roles without the doom-scroll</h2><p>Scores explain themselves. Every role should earn the time it takes to apply.</p></div>
-          <div class="section-actions">${counts.new ? `<button class="button quiet small" type="button" data-action="mark-all-seen"><svg aria-hidden="true"><use href="#icon-check"></use></svg>Mark new as seen</button>` : ""}<button class="button quiet small" type="button" data-action="run-scout"><svg aria-hidden="true"><use href="#icon-refresh"></use></svg>Check now</button></div>
+          <div><p class="eyebrow">Fresh first, always</p><h2>Roles worth seeing this week</h2><p>Only genuinely eligible roles posted in the last ${state.feedFreshnessDays} days reach this page. Newest is the default.</p></div>
+          <div class="section-actions">${counts.unseen ? `<button class="button quiet small" type="button" data-action="mark-all-seen"><svg aria-hidden="true"><use href="#icon-check"></use></svg>Mark seen</button>` : ""}<button class="button quiet small" type="button" data-action="run-scout"><svg aria-hidden="true"><use href="#icon-refresh"></use></svg>Check now</button></div>
+        </div>
+        <div class="freshness-overview" aria-label="Fresh job summary">
+          <article class="freshness-stat urgent"><span>Today</span><strong>${counts.today}</strong><small>posted in the last 24 hours</small></article>
+          <article class="freshness-stat"><span>Last 72 hours</span><strong>${counts.threeDays}</strong><small>best window for early applications</small></article>
+          <article class="freshness-stat"><span>This week</span><strong>${counts.week}</strong><small>across ${checkedSources} watched sources</small></article>
         </div>
         <div class="discover-toolbar">
           <label class="search-box"><svg aria-hidden="true"><use href="#icon-search"></use></svg><input id="searchJobs" type="search" value="${escapeHtml(state.search)}" placeholder="Search role, company, location…" aria-label="Search jobs" /></label>
           <select class="toolbar-select" id="sortJobs" aria-label="Sort jobs">
-            ${option("recommended", "Best match", state.sort)}
             ${option("newest", "Newest first", state.sort)}
+            ${option("recommended", "Best match", state.sort)}
             ${option("salary", "Highest salary", state.sort)}
           </select>
           <button class="button quiet" type="button" data-view="settings" data-settings-section="search"><svg aria-hidden="true"><use href="#icon-filter"></use></svg>Search profile</button>
         </div>
         <div class="filter-strip" role="group" aria-label="Filter jobs">
-          ${filterChip("all", "All", counts.all)}
-          ${filterChip("new", "Unseen", counts.new)}
-          ${filterChip("top", `${state.preferences.alertThreshold}%+`, counts.top)}
+          ${filterChip("week", "This week", counts.week)}
+          ${filterChip("today", "Today", counts.today)}
+          ${filterChip("three-days", "72 hours", counts.threeDays)}
           ${filterChip("remote", "Remote", counts.remote)}
-          ${filterChip("salary", `${formatMoney(state.preferences.preferredSalary)}+`, counts.salary)}
           ${filterChip("saved", "Saved", counts.saved)}
         </div>
-        <div class="results-line"><span><strong>${filtered.length}</strong> role${filtered.length === 1 ? "" : "s"} shown</span><span>${state.scout.lastRunAt ? `Last checked ${timeAgo(state.scout.lastRunAt)}` : "Scout not connected"}</span></div>
-        ${filtered.length ? `<div class="job-grid">${filtered.map(renderJobCard).join("")}</div>` : renderEmpty("search", "No roles match this view", "Clear a filter or adjust Max’s search profile. The Scout will keep checking in the background.", "Clear filters", "clear-filters")}
+        <div class="results-line"><span><strong>${filtered.length}</strong> current role${filtered.length === 1 ? "" : "s"}</span><span>${state.scout.lastRunAt ? `Checked ${timeAgo(state.scout.lastRunAt)}` : "Checking automatically"}</span></div>
+        ${filtered.length ? `<div class="job-grid">${filtered.map(renderJobCard).join("")}</div>` : renderEmpty("search", "No fresh roles in this view", "That is better than padding the list with stale or wrong jobs. Scout will check again automatically.", "Show this week", "clear-filters")}
       </section>
     </div>`;
 }
@@ -579,7 +592,7 @@ function renderSettings() {
           <div class="settings-section-heading"><h2>Alerts and automation</h2><p>Scout checks fresh roles automatically while Job Garden is open. Device notifications appear after you enable them once.</p></div>
           <article class="settings-card">
             <div class="settings-card-header"><div><h3>Scout health</h3><p>${escapeHtml(scoutStatusSentence())}</p></div><span class="health-badge ${scoutHealthy() ? "" : "warn"}">${scoutHealthy() ? "Healthy" : "Needs setup"}</span></div>
-            ${state.mode === "private" ? `<div class="switch-row"><div class="switch-copy"><strong>Immediate email alerts</strong><span>Send new roles at or above the match threshold to Max and Prateek.</span></div>${switchControl("alertEmail", prefs.alertEmail)}</div><div class="switch-row"><div class="switch-copy"><strong>Telegram alerts</strong><span>Send matched roles to connected chats.</span></div>${switchControl("alertTelegram", prefs.alertTelegram)}</div>` : `<div class="switch-row"><div class="switch-copy"><strong>Automatic checks</strong><span>Runs when the site opens and every 15 minutes while it remains open.</span></div><span class="health-badge">On</span></div>`}
+            ${state.mode === "private" ? `<div class="switch-row"><div class="switch-copy"><strong>Immediate email alerts</strong><span>Send Max new roles at or above the match threshold.</span></div>${switchControl("alertEmail", prefs.alertEmail)}</div><div class="switch-row"><div class="switch-copy"><strong>Telegram alerts</strong><span>Send matched roles to Max’s connected chat.</span></div>${switchControl("alertTelegram", prefs.alertTelegram)}</div>` : `<div class="switch-row"><div class="switch-copy"><strong>Automatic checks</strong><span>Runs when the site opens and every 15 minutes while it remains open.</span></div><span class="health-badge">On</span></div>`}
             <div class="field-grid three" style="margin-top:16px">
               <label class="field"><span>Alert at</span><input form="preferencesForm" name="alertThreshold" type="number" min="0" max="99" value="${prefs.alertThreshold}" /></label>
               <label class="field"><span>Quiet from</span><input form="preferencesForm" name="quietHoursStart" type="number" min="0" max="23" value="${prefs.quietHoursStart}" /></label>
@@ -645,14 +658,14 @@ function renderSettings() {
 }
 
 function renderJobCard(job) {
-  const posted = job.postedDate ? formatRelativeDate(job.postedDate) : job.discoveredAt ? `found ${timeAgo(job.discoveredAt)}` : "date unknown";
   const salary = salaryText(job);
   const unseen = job.status === "new" && !job.seenAt;
   return `<button class="job-card ${unseen ? "unseen" : ""}" type="button" data-open-job="${escapeHtml(job.id)}">
-    <div class="job-card-top"><div><div class="meta-row">${unseen ? `<span class="status-pill new">New</span>` : statusPill(job.status)}${sourcePill(job.source)}</div><h3>${escapeHtml(job.title)}</h3><span class="job-card-company">${escapeHtml(job.company)}</span></div>${scoreRing(job.fit)}</div>
-    <div class="job-card-meta"><span><svg aria-hidden="true"><use href="#icon-map"></use></svg>${escapeHtml(job.location)}</span><span><svg aria-hidden="true"><use href="#icon-money"></use></svg>${escapeHtml(salary)}</span><span><svg aria-hidden="true"><use href="#icon-calendar"></use></svg>${escapeHtml(posted)}</span></div>
-    <div class="job-card-reasons">${job.fit.reasons.slice(0, 3).map((reason) => metaPill(reason, "good")).join("")}${job.fit.concerns.slice(0, 1).map((reason) => metaPill(reason, "warn")).join("")}</div>
-    <div class="job-card-footer"><span>${escapeHtml(job.workPattern === "unknown" ? "Work pattern unclear" : titleCase(job.workPattern))}</span><strong>Review role<svg aria-hidden="true"><use href="#icon-arrow"></use></svg></strong></div>
+    <div class="job-card-top"><div><div class="meta-row">${freshnessPill(job)}${job.status !== "new" ? statusPill(job.status) : ""}</div><h3>${escapeHtml(job.title)}</h3><span class="job-card-company">${escapeHtml(job.company)}</span></div>${scoreRing(job.fit)}</div>
+    <div class="job-card-meta"><span><svg aria-hidden="true"><use href="#icon-map"></use></svg>${escapeHtml(job.location)}</span><span><svg aria-hidden="true"><use href="#icon-money"></use></svg>${escapeHtml(salary)}</span></div>
+    <p class="job-card-scan">${escapeHtml(advertSummary(job.description, 150) || "Open for the key fit signals, concerns, and application decision.")}</p>
+    <div class="job-card-reasons">${job.fit.reasons.slice(0, 2).map((reason) => metaPill(reason, "good")).join("")}${job.fit.concerns.slice(0, 1).map((reason) => metaPill(reason, "warn")).join("")}</div>
+    <div class="job-card-footer"><span>${escapeHtml(job.aggregated ? `${job.source} listing` : "Direct employer advert")}</span><strong>30-sec review<svg aria-hidden="true"><use href="#icon-arrow"></use></svg></strong></div>
   </button>`;
 }
 
@@ -678,8 +691,13 @@ function renderActionItem({ job, action }) {
 function renderJobDialog(jobId) {
   const job = decoratedJobs().find((item) => item.id === jobId);
   if (!job) return;
-  const action = nextActionFor(job, state.preferences);
   const checklist = applicationChecklist(job);
+  const summary = advertSummary(job.description, 420);
+  const highlights = advertHighlights(job.description);
+  const concerns = uniqueList([
+    ...(job.fit.concerns || []),
+    ...(job.employerNamed === false ? ["Employer name is hidden on this partner listing—verify it before sharing personal details."] : []),
+  ]);
   const closeStatus = ["rejected", "withdrawn", "closed", "skipped"].includes(job.status);
   const canPrepare = ["new", "saved"].includes(job.status);
   const canApply = job.status === "applying";
@@ -687,28 +705,32 @@ function renderJobDialog(jobId) {
   const canFollowUp = ["applied", "follow_up"].includes(job.status);
 
   jobDialogContent.innerHTML = `<div class="job-dialog-shell">
-    <div class="job-dialog-header"><span>${escapeHtml(action.label)}</span><button class="icon-button" type="button" data-close-dialog="jobDialog" aria-label="Close"><svg aria-hidden="true"><use href="#icon-close"></use></svg></button></div>
+    <div class="job-dialog-header"><span>${escapeHtml(freshnessLabel(job))} · ${escapeHtml(job.source)}</span><button class="icon-button" type="button" data-close-dialog="jobDialog" aria-label="Close"><svg aria-hidden="true"><use href="#icon-close"></use></svg></button></div>
     <div class="job-detail">
-      <section class="job-detail-hero"><div><div class="meta-row">${statusPill(job.status)}${sourcePill(job.source)}${job.postedDate ? metaPill(`Posted ${formatRelativeDate(job.postedDate)}`) : ""}</div><h2 id="jobDialogTitle">${escapeHtml(job.title)}</h2><p class="job-detail-company">${escapeHtml(job.company)} · ${escapeHtml(job.location)}</p><div class="meta-row">${metaPill(salaryText(job), (job.salaryMax || job.salaryMin) >= state.preferences.minimumSalary ? "good" : "warn")}${metaPill(titleCase(job.workPattern || "unknown"))}${job.contractType ? metaPill(titleCase(job.contractType.replaceAll("_", " "))) : ""}</div></div>${scoreRing(job.fit)}</section>
-      <div class="job-detail-actions">
-        ${job.url ? `<a class="button primary" href="${escapeHtml(job.url)}" target="_blank" rel="noreferrer" data-action="advert-opened" data-job-id="${escapeHtml(job.id)}"><svg aria-hidden="true"><use href="#icon-external"></use></svg>Open advert</a>` : ""}
-        ${canSave ? `<button class="button quiet" type="button" data-job-action="save" data-job-id="${escapeHtml(job.id)}"><svg aria-hidden="true"><use href="#icon-sprout"></use></svg>Save for later</button>` : ""}
-        ${canPrepare ? `<button class="button lime" type="button" data-job-action="prepare" data-job-id="${escapeHtml(job.id)}"><svg aria-hidden="true"><use href="#icon-file"></use></svg>Start application</button>` : ""}
-        ${canApply ? `<button class="button lime" type="button" data-job-action="applied" data-job-id="${escapeHtml(job.id)}"><svg aria-hidden="true"><use href="#icon-check"></use></svg>Mark applied</button>` : ""}
-        ${canFollowUp ? `<button class="button quiet" type="button" data-job-action="copy-followup" data-job-id="${escapeHtml(job.id)}"><svg aria-hidden="true"><use href="#icon-copy"></use></svg>Copy follow-up</button>` : ""}
-        ${!closeStatus ? `<button class="button quiet" type="button" data-job-action="toggle-skip" data-job-id="${escapeHtml(job.id)}">Not for Max</button>` : `<button class="button quiet" type="button" data-job-action="restore" data-job-id="${escapeHtml(job.id)}">Restore</button>`}
+      <section class="job-detail-hero"><div><div class="meta-row">${freshnessPill(job)}${statusPill(job.status)}${job.aggregated ? metaPill("Partner listing") : metaPill("Direct employer", "good")}</div><h2 id="jobDialogTitle">${escapeHtml(job.title)}</h2><p class="job-detail-company">${escapeHtml(job.company)}</p><p class="job-detail-summary">${escapeHtml(summary || "The source did not provide a usable summary. Use the direct advert to verify the role before applying.")}</p></div>${scoreRing(job.fit)}</section>
+      <div class="decision-facts" aria-label="Fast job check">
+        ${decisionFact("calendar", "Freshness", freshnessLabel(job))}
+        ${decisionFact("map", "Eligible location", job.location)}
+        ${decisionFact("money", "Salary", salaryText(job))}
       </div>
       <div class="job-detail-grid">
-        <article class="detail-card"><h3><svg aria-hidden="true"><use href="#icon-sparkles"></use></svg>Why it may fit</h3><ul class="reason-list">${job.fit.reasons.length ? job.fit.reasons.map((reason) => `<li>${escapeHtml(reason)}</li>`).join("") : "<li>No strong match signal yet.</li>"}</ul></article>
-        <article class="detail-card"><h3><svg aria-hidden="true"><use href="#icon-target"></use></svg>Check before applying</h3><ul class="concern-list">${job.fit.concerns.length ? job.fit.concerns.map((concern) => `<li>${escapeHtml(concern)}</li>`).join("") : "<li>No obvious blocker found—still verify the advert.</li>"}</ul></article>
+        <article class="detail-card decision-card good"><h3><svg aria-hidden="true"><use href="#icon-sparkles"></use></svg>Why it may fit</h3><ul class="reason-list">${job.fit.reasons.length ? job.fit.reasons.map((reason) => `<li>${escapeHtml(reason)}</li>`).join("") : "<li>No strong match signal yet.</li>"}</ul></article>
+        <article class="detail-card decision-card"><h3><svg aria-hidden="true"><use href="#icon-target"></use></svg>Verify before applying</h3><ul class="concern-list">${concerns.length ? concerns.map((concern) => `<li>${escapeHtml(concern)}</li>`).join("") : "<li>No obvious blocker found—still confirm the advert is live.</li>"}</ul></article>
       </div>
-      <article class="detail-card"><h3><svg aria-hidden="true"><use href="#icon-file"></use></svg>Advert snapshot</h3><div class="job-description">${escapeHtml(job.description || "No description is saved yet. Open the advert and add the important must-haves or concerns to Notes.")}</div></article>
-      <div class="job-detail-grid">
-        <article class="detail-card"><h3><svg aria-hidden="true"><use href="#icon-check"></use></svg>Application checklist</h3><div class="checklist">${checklist.map((item) => `<label class="checklist-item"><input type="checkbox" data-checklist-id="${item.id}" data-job-id="${escapeHtml(job.id)}" ${item.done ? "checked" : ""}/><span><strong>${escapeHtml(item.label)}</strong><span>${escapeHtml(item.detail)}</span></span></label>`).join("")}</div></article>
-        <article class="detail-card"><h3><svg aria-hidden="true"><use href="#icon-calendar"></use></svg>Dates and state</h3><div class="field-grid"><label class="field full"><span>Pipeline stage</span><select data-job-field="status" data-job-id="${escapeHtml(job.id)}">${pipelineOptions(job.status)}</select></label><label class="field"><span>Applied</span><input type="date" data-job-field="appliedDate" data-job-id="${escapeHtml(job.id)}" value="${escapeHtml(job.appliedDate)}" /></label><label class="field"><span>Deadline</span><input type="date" data-job-field="deadline" data-job-id="${escapeHtml(job.id)}" value="${escapeHtml(job.deadline)}" /></label><label class="field full"><span>Interview time</span><input type="datetime-local" data-job-field="interviewAt" data-job-id="${escapeHtml(job.id)}" value="${escapeHtml(toDateTimeLocal(job.interviewAt))}" /></label></div><button class="button quiet full-button" type="button" data-job-action="open-cv" data-job-id="${escapeHtml(job.id)}" style="margin-top:12px"><svg aria-hidden="true"><use href="#icon-file"></use></svg>Prepare CV & messages</button></article>
-      </div>
-      <article class="detail-card"><h3><svg aria-hidden="true"><use href="#icon-edit"></use></svg>Private notes</h3><textarea class="job-notes" data-job-notes="${escapeHtml(job.id)}" placeholder="Recruiter, questions, concerns, interview detail…">${escapeHtml(job.notes)}</textarea><div style="display:flex;justify-content:flex-end;margin-top:8px"><button class="button quiet small" type="button" data-job-action="save-notes" data-job-id="${escapeHtml(job.id)}">Save notes</button></div></article>
+      <article class="detail-card advert-highlights"><h3><svg aria-hidden="true"><use href="#icon-file"></use></svg>What the role appears to involve</h3><ul class="highlight-list">${highlights.length ? highlights.map((item) => `<li>${escapeHtml(item)}</li>`).join("") : "<li>Open the live advert for the complete responsibilities and requirements.</li>"}</ul></article>
+      <details class="job-disclosure"><summary><span><strong>Read the full advert snapshot</strong><small>Collapsed by default to keep this decision screen calm</small></span><svg aria-hidden="true"><use href="#icon-chevron"></use></svg></summary><div class="disclosure-body"><div class="job-description">${escapeHtml(job.description || "No description is saved yet. Open the live advert to review the details.")}</div></div></details>
+      <details class="job-disclosure"><summary><span><strong>Application workspace</strong><small>Checklist, dates, CV tools, and private notes</small></span><svg aria-hidden="true"><use href="#icon-chevron"></use></svg></summary><div class="disclosure-body workbench-stack">
+        <div class="job-detail-grid">
+          <article class="detail-card"><h3><svg aria-hidden="true"><use href="#icon-check"></use></svg>Application checklist</h3><div class="checklist">${checklist.map((item) => `<label class="checklist-item"><input type="checkbox" data-checklist-id="${item.id}" data-job-id="${escapeHtml(job.id)}" ${item.done ? "checked" : ""}/><span><strong>${escapeHtml(item.label)}</strong><span>${escapeHtml(item.detail)}</span></span></label>`).join("")}</div></article>
+          <article class="detail-card"><h3><svg aria-hidden="true"><use href="#icon-calendar"></use></svg>Dates and state</h3><div class="field-grid"><label class="field full"><span>Pipeline stage</span><select data-job-field="status" data-job-id="${escapeHtml(job.id)}">${pipelineOptions(job.status)}</select></label><label class="field"><span>Applied</span><input type="date" data-job-field="appliedDate" data-job-id="${escapeHtml(job.id)}" value="${escapeHtml(job.appliedDate)}" /></label><label class="field"><span>Deadline</span><input type="date" data-job-field="deadline" data-job-id="${escapeHtml(job.id)}" value="${escapeHtml(job.deadline)}" /></label><label class="field full"><span>Interview time</span><input type="datetime-local" data-job-field="interviewAt" data-job-id="${escapeHtml(job.id)}" value="${escapeHtml(toDateTimeLocal(job.interviewAt))}" /></label></div><button class="button quiet full-button" type="button" data-job-action="open-cv" data-job-id="${escapeHtml(job.id)}" style="margin-top:12px"><svg aria-hidden="true"><use href="#icon-file"></use></svg>Prepare CV & messages</button></article>
+        </div>
+        <article class="detail-card"><h3><svg aria-hidden="true"><use href="#icon-edit"></use></svg>Private notes</h3><textarea class="job-notes" data-job-notes="${escapeHtml(job.id)}" placeholder="Questions, concerns, recruiter, interview detail…">${escapeHtml(job.notes)}</textarea><div class="notes-footer"><button class="button quiet small" type="button" data-job-action="save-notes" data-job-id="${escapeHtml(job.id)}">Save notes</button></div></article>
+      </div></details>
       <section class="skip-panel" id="skipPanel"><h3>What makes this wrong for Max?</h3><div class="skip-reasons">${["Salary too low", "Wrong location / travel", "Too sales-led", "Too senior", "Contract or temporary", "Poor work-life fit"].map((reason) => `<label class="skip-reason"><input type="checkbox" name="skipReason" value="${escapeHtml(reason)}" />${escapeHtml(reason)}</label>`).join("")}</div><label class="field"><span>Anything else?</span><input id="skipOther" placeholder="A short reason helps future scoring" /></label><div style="display:flex;justify-content:flex-end"><button class="button danger" type="button" data-job-action="confirm-skip" data-job-id="${escapeHtml(job.id)}"><svg aria-hidden="true"><use href="#icon-trash"></use></svg>Remove and learn</button></div></section>
+    </div>
+    <div class="job-decision-bar">
+      <div class="job-decision-secondary">${!closeStatus ? `<button class="button quiet" type="button" data-job-action="toggle-skip" data-job-id="${escapeHtml(job.id)}">Not for Max</button>` : `<button class="button quiet" type="button" data-job-action="restore" data-job-id="${escapeHtml(job.id)}">Restore</button>`}${canSave ? `<button class="button quiet" type="button" data-job-action="save" data-job-id="${escapeHtml(job.id)}"><svg aria-hidden="true"><use href="#icon-sprout"></use></svg>Save</button>` : ""}</div>
+      <div class="job-decision-primary">${canFollowUp ? `<button class="button quiet" type="button" data-job-action="copy-followup" data-job-id="${escapeHtml(job.id)}"><svg aria-hidden="true"><use href="#icon-copy"></use></svg>Copy follow-up</button>` : ""}${job.url ? `<a class="button quiet" href="${escapeHtml(job.url)}" target="_blank" rel="noreferrer" data-action="advert-opened" data-job-id="${escapeHtml(job.id)}"><svg aria-hidden="true"><use href="#icon-external"></use></svg>Live advert</a>` : ""}${canPrepare ? `<button class="button lime" type="button" data-job-action="prepare" data-job-id="${escapeHtml(job.id)}"><svg aria-hidden="true"><use href="#icon-file"></use></svg>Start application</button>` : ""}${canApply ? `<button class="button lime" type="button" data-job-action="applied" data-job-id="${escapeHtml(job.id)}"><svg aria-hidden="true"><use href="#icon-check"></use></svg>Mark applied</button>` : ""}</div>
     </div>
   </div>`;
 }
@@ -873,7 +895,7 @@ function handleDocumentKeydown(event) {
 async function handleAction(action) {
   if (action === "clear-filters") {
     state.search = "";
-    state.discoverFilter = "all";
+    state.discoverFilter = "week";
     render();
   } else if (action === "mark-all-seen") {
     markAllSeen();
@@ -1081,9 +1103,14 @@ async function runLocalScout(options = {}) {
     const settled = await Promise.allSettled(enabled.map(fetchLocalSource));
     if (!settled.some((result) => result.status === "fulfilled")) throw new Error("All enabled job sources were unavailable");
     const candidates = settled.flatMap((result) => result.status === "fulfilled" ? result.value : []);
+    const liveFeedKeys = new Set(candidates.flatMap((job) => [job.id, job.url].filter(Boolean)));
+    state.jobs = state.jobs.filter((job) => {
+      if (job.status !== "new" || !isManagedFeedJob(job)) return true;
+      return liveFeedKeys.has(job.id) || liveFeedKeys.has(job.url);
+    });
     const ranked = decorateJobs(uniqueJobs(candidates).filter(isMaxLocationEligible).filter(isMaxRoleEligible), state.preferences, state.jobs)
       .filter((job) => job.fit.score >= state.preferences.reviewThreshold)
-      .sort((a, b) => b.fit.score - a.fit.score || String(b.postedDate).localeCompare(String(a.postedDate)));
+      .sort((a, b) => String(b.postedDate).localeCompare(String(a.postedDate)) || b.fit.score - a.fit.score);
     const fresh = ranked.filter((job) => !existingKeys.has(job.id) && !existingKeys.has(job.url)).slice(0, 80);
     if (fresh.length) state.jobs = uniqueJobs([...fresh, ...state.jobs]);
     const now = new Date().toISOString();
@@ -1093,7 +1120,7 @@ async function runLocalScout(options = {}) {
       const result = sourceResults.get(source.id);
       return { ...source, status: result?.status === "fulfilled" ? "Healthy" : "Temporarily unavailable", lastScanAt: now };
     });
-    state.scout = { status: "healthy", lastRunAt: now, nextRunAt: new Date(Date.now() + 15 * 60000).toISOString(), lastNewCount: fresh.length, sourceCount: enabled.length };
+    state.scout = { status: "healthy", lastRunAt: now, nextRunAt: new Date(Date.now() + 15 * 60000).toISOString(), lastNewCount: fresh.length, sourceCount: state.feedSourceCount || enabled.length };
     state.generatedAt = now;
     saveLocalWorkspace();
     if (fresh.length) await notifyNewJobs(fresh);
@@ -1117,6 +1144,8 @@ async function fetchLocalSource(source) {
     const response = await fetch(`${source.endpoint}?v=${Date.now()}`, { cache: "no-store", referrerPolicy: "no-referrer" });
     if (!response.ok) throw new Error(`Curated job watch returned ${response.status}`);
     const payload = await response.json();
+    state.feedSourceCount = (payload.sources || []).length || state.feedSourceCount;
+    state.feedFreshnessDays = Math.max(1, Math.min(7, Number(payload.freshnessWindowDays) || 7));
     return (payload.jobs || []).map(normaliseJob);
   }
   if (source.id === "remotive") {
@@ -1385,6 +1414,10 @@ function decoratedJobs() {
   return decorateJobs(jobs, state.preferences, jobs);
 }
 
+function isManagedFeedJob(job) {
+  return Boolean(job.feedManaged) || / careers$/i.test(job.source || "") || ["Jobgether", "Arbeitnow", "Remote OK", "Remotive"].includes(job.source);
+}
+
 function scoreRing(fit) {
   const score = fit?.score || 0;
   const band = fit?.band || fitBand(score);
@@ -1403,9 +1436,49 @@ function statusPill(status) {
   return `<span class="status-pill ${tone}">${escapeHtml(label)}</span>`;
 }
 
-function sourcePill(source) {
-  const label = /adzuna/i.test(source || "") ? "Jobs by Adzuna" : source || "Source";
-  return `<span class="source-pill">${escapeHtml(label)}</span>`;
+function jobAge(job) {
+  return daysSince(job.postedDate || job.discoveredAt);
+}
+
+function freshnessLabel(job) {
+  const age = jobAge(job);
+  if (age === 0) return "Posted today";
+  if (age === 1) return "Posted yesterday";
+  if (age !== null) return `Posted ${age} days ago`;
+  return "Posting date unavailable";
+}
+
+function freshnessPill(job) {
+  const age = jobAge(job);
+  const label = age === 0 ? "Today" : age === 1 ? "Yesterday" : age !== null && age <= 3 ? `${age} days new` : age !== null ? `${age} days old` : "Date unknown";
+  const tone = age !== null && age <= 1 ? "urgent" : age !== null && age <= 3 ? "recent" : "week";
+  return `<span class="freshness-pill ${tone}"><svg aria-hidden="true"><use href="#icon-zap"></use></svg>${escapeHtml(label)}</span>`;
+}
+
+function decisionFact(icon, label, value) {
+  return `<div class="decision-fact"><span class="decision-fact-icon"><svg aria-hidden="true"><use href="#icon-${icon}"></use></svg></span><span><small>${escapeHtml(label)}</small><strong>${escapeHtml(value)}</strong></span></div>`;
+}
+
+function advertSummary(value, maxLength = 260) {
+  const sentences = advertSentences(value);
+  const summary = sentences.slice(0, 2).join(" ");
+  if (!summary) return "";
+  return summary.length <= maxLength ? summary : `${summary.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
+}
+
+function advertHighlights(value) {
+  const sentences = advertSentences(value);
+  const useful = sentences.filter((sentence) => /\b(?:manage|lead|own|deliver|support|partner|coordinate|onboard|experience|required|responsib|customer|client|stakeholder)\b/i.test(sentence));
+  return uniqueList((useful.length ? useful : sentences).map((sentence) => sentence.length > 220 ? `${sentence.slice(0, 219).trimEnd()}…` : sentence)).slice(0, 4);
+}
+
+function advertSentences(value) {
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .split(/(?<=[.!?])\s+(?=[A-Z0-9])/)
+    .map((sentence) => sentence.trim())
+    .filter((sentence) => sentence.length >= 35)
+    .filter((sentence) => !/equal opportun|privacy notice|personal data|how jobgether works|we appreciate your interest|all qualified applicants/i.test(sentence));
 }
 
 function metaPill(value, tone = "") {
@@ -1496,8 +1569,8 @@ function scoutStatusSentence() {
   if (state.mode === "local") return "Scout is ready to check two no-key job feeds now.";
   if (state.scout.status === "sleeping") return "Scout is respecting quiet hours and will resume in the morning.";
   if (state.scout.lastRunAt) return `Scout checked ${timeAgo(state.scout.lastRunAt)}${state.scout.lastNewCount ? ` and found ${state.scout.lastNewCount} new` : ""}.`;
-  if (state.scout.sourceCount > 0 && !state.scout.apiConfigured) return "Scout is ready with no-key feeds; Adzuna can add faster UK coverage.";
-  if (!state.scout.apiConfigured) return "Scout needs at least one active source or the optional Adzuna connection.";
+  if (state.scout.sourceCount > 0) return `Scout is watching ${state.scout.sourceCount} sources and only publishing roles from the last ${state.feedFreshnessDays} days.`;
+  if (!state.scout.apiConfigured) return "Scout needs at least one active source.";
   return "Scout is waiting for its first scheduled run.";
 }
 
