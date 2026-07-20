@@ -12,11 +12,11 @@
     >
     <title>Max's Job Garden</title>
     <meta name="description" content="A private, focused job search workspace for Max.">
-    <script src="./bootstrap.js?v=20260720-3"></script>
-    <link rel="manifest" href="./manifest.webmanifest?v=20260720-3">
+    <script src="./bootstrap.js?v=20260720-4"></script>
+    <link rel="manifest" href="./manifest.webmanifest?v=20260720-4">
     <link rel="icon" href="./assets/garden-mark.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" sizes="192x192" href="./assets/garden-mark-192.png">
-    <link rel="stylesheet" href="./styles.css?v=20260720-3">
+    <link rel="stylesheet" href="./styles.css?v=20260720-4">
   </head>
   <body>
     <a class="skip-link" href="#viewContent">Skip to the workspace</a>
@@ -32,23 +32,19 @@
             <span class="brand-mark"><svg aria-hidden="true"><use href="#icon-sprout"></use></svg></span>
             <span>Max's Job Garden</span>
           </div>
-          <p class="eyebrow">Private job-search workspace</p>
-          <h1 id="accessTitle">Connect this device to the garden.</h1>
-          <p class="access-intro">The website is live, but real jobs only appear after this browser opens Max’s or Prateek’s personal access link. That keeps the CV, contact details, settings, and application history out of the public website.</p>
+          <p class="eyebrow">One-time activation</p>
+          <h1 id="accessTitle">Your Job Garden is ready.</h1>
+          <p class="access-intro">Connect the existing Google Sheet once. Job Garden will import the application history, search automatically, send alerts, and give Max and Prateek their own secure access.</p>
           <div class="access-status" id="accessStatus" role="status">
             <span class="status-dot"></span>
-            <span>Checking this device for private access…</span>
+            <span>Website deployed ✓ · Google Sheet connection is next</span>
           </div>
           <div class="access-actions">
             <a class="button primary" href="https://github.com/prateekewl/max-job-garden" target="_blank" rel="noopener noreferrer">
-              Owner setup guide
+              Open activation steps
             </a>
-            <button class="button quiet" id="retryAccess" type="button">
-              <svg aria-hidden="true"><use href="#icon-refresh"></use></svg>
-              Check this device again
-            </button>
           </div>
-          <p class="access-help"><strong>Prateek:</strong> complete the one-time owner setup to email both private links. <strong>Max:</strong> open the personal link emailed to you. Sample data is available only from the separate demo URL.</p>
+          <p class="access-help">Google asks the Sheet owner to approve this connection once. After activation, both secure links are emailed automatically and this screen disappears on each connected device.</p>
         </div>
       </section>
     </div>
@@ -224,6 +220,6 @@
     </svg>
 
     <script src="./assets/jspdf.umd.min.js"></script>
-    <script type="module" src="./app.js?v=20260720-3"></script>
+    <script type="module" src="./app.js?v=20260720-4"></script>
   </body>
 </html>

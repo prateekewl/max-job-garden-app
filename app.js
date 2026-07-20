@@ -108,11 +108,10 @@ async function init() {
     loadDemo();
     return;
   }
-  setAccessStatus("Waiting for a personal access link. Owner setup is still required.", "");
+  setAccessStatus("Website deployed ✓ · Google Sheet connection is next", "success");
 }
 
 function bindStaticEvents() {
-  document.querySelector("#retryAccess")?.addEventListener("click", connectPrivate);
   document.querySelector("#refreshData")?.addEventListener("click", () => refreshData());
   document.querySelector("#notificationButton")?.addEventListener("click", () => navigate("settings", "alerts"));
   document.querySelector("#openAddJob")?.addEventListener("click", openAddJobDialog);
@@ -157,7 +156,7 @@ async function connectPrivate() {
   const api = localStorage.getItem(KEYS.api);
   const access = localStorage.getItem(KEYS.access);
   if (!api || !access) {
-    setAccessStatus("No personal access is stored on this device yet. Complete owner setup or open an emailed link.", "");
+    setAccessStatus("That secure link is incomplete. Ask Prateek to send it again.", "error");
     return;
   }
 
