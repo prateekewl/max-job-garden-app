@@ -1,0 +1,49 @@
+name: Deploy the privacy-safe shell
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the shell
+        uses: actions/checkout@v6
+
+      - name: Build the Pages artifact
+        run: |
+          install -d _site/assets
+          cp index.html bootstrap.js styles.css app.js core.js pdf.js demo-data.js manifest.webmanifest sw.js _site/
+          cp assets/garden-mark.svg assets/garden-mark-192.png assets/garden-mark-512.png assets/garden-companions.jpg assets/jspdf.umd.min.js _site/assets/
+          cp index.html _site/404.html
+          touch _site/.nojekyll
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload the Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

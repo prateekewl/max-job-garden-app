@@ -1,0 +1,147 @@
+export const demoProfile = {
+  name: "Max",
+  location: "Glasgow, UK",
+  headline: "Client Operations & Service Delivery",
+  summary: "Client-facing operations professional with experience in service delivery, workforce coordination, stakeholder communication, and process improvement across B2B environments.",
+  skills: ["Client & Stakeholder Management", "Service Delivery", "Account Coordination", "Issue Resolution", "Process Improvement", "KPI Monitoring", "Workforce Planning"],
+  tools: ["Salesforce", "Google Workspace", "Microsoft Office", "Slack"],
+  certifications: ["HubSpot Service Hub Certified", "HubSpot Sales Hub Certified"],
+  languages: ["German — Native", "English — Advanced"],
+  roles: [],
+};
+
+export const demoJobs = [
+  {
+    id: "demo-service-delivery",
+    title: "Service Delivery Manager",
+    company: "Northstar Cloud",
+    location: "Glasgow · Hybrid",
+    salaryMin: 48000,
+    salaryMax: 55000,
+    source: "Adzuna",
+    sourceId: "demo-101",
+    url: "https://www.adzuna.co.uk/",
+    postedDate: relativeDate(0),
+    discoveredAt: new Date().toISOString(),
+    status: "new",
+    workPattern: "hybrid",
+    contractType: "permanent full_time",
+    benefits: ["30 days annual leave", "Pension", "Private healthcare"],
+    description: "Own client service delivery across strategic accounts, lead stakeholder reviews, monitor KPIs, coordinate issue resolution, and drive continual improvement across internal teams.",
+  },
+  {
+    id: "demo-customer-success",
+    title: "Customer Success Manager — DACH",
+    company: "Brightpath SaaS",
+    location: "United Kingdom · Remote",
+    salaryMin: 50000,
+    salaryMax: 58000,
+    source: "Greenhouse",
+    sourceId: "demo-102",
+    url: "https://www.greenhouse.com/",
+    postedDate: relativeDate(1),
+    discoveredAt: new Date(Date.now() - 3600000).toISOString(),
+    status: "saved",
+    workPattern: "remote",
+    contractType: "permanent full_time",
+    benefits: ["Remote", "Learning budget", "Pension"],
+    description: "Support German-speaking customers, coordinate onboarding, build success plans, resolve escalations, and partner with product and commercial stakeholders.",
+  },
+  {
+    id: "demo-client-operations",
+    title: "Client Operations Manager",
+    company: "Caledonia People",
+    location: "Glasgow · Hybrid",
+    salaryMin: 43000,
+    salaryMax: 48000,
+    source: "Added manually",
+    sourceId: "demo-103",
+    url: "https://example.com/job",
+    postedDate: relativeDate(3),
+    discoveredAt: new Date(Date.now() - 86400000).toISOString(),
+    status: "applying",
+    workPattern: "hybrid",
+    contractType: "permanent full_time",
+    benefits: ["Hybrid", "25 days annual leave", "Pension"],
+    description: "Coordinate workforce delivery, payroll approvals, operational reporting, client communication, and service improvement across multiple accounts.",
+    checklist: { advert: true, evidence: true, cv: false, questions: false },
+  },
+  {
+    id: "demo-applied",
+    title: "Supplier Engagement Manager",
+    company: "Cirrus Talent",
+    location: "UK · Remote",
+    salaryMin: 50000,
+    salaryMax: 56000,
+    source: "Adzuna",
+    sourceId: "demo-104",
+    url: "https://www.adzuna.co.uk/",
+    postedDate: relativeDate(10),
+    discoveredAt: new Date(Date.now() - 8 * 86400000).toISOString(),
+    appliedDate: relativeDate(6),
+    status: "applied",
+    workPattern: "remote",
+    contractType: "permanent full_time",
+    description: "Manage supplier performance, client expectations, workforce operations, governance meetings, and continual improvement.",
+  },
+  {
+    id: "demo-interview",
+    title: "Account Manager — German Speaking",
+    company: "Atlas Systems",
+    location: "UK · Remote",
+    salaryMin: 46000,
+    salaryMax: 52000,
+    source: "Lever",
+    sourceId: "demo-105",
+    url: "https://www.lever.co/",
+    postedDate: relativeDate(14),
+    discoveredAt: new Date(Date.now() - 12 * 86400000).toISOString(),
+    appliedDate: relativeDate(9),
+    status: "interview",
+    interviewAt: new Date(Date.now() + 27 * 3600000).toISOString(),
+    workPattern: "remote",
+    contractType: "permanent full_time",
+    description: "Grow and retain a portfolio of German-speaking customers through consultative relationship management and cross-functional coordination.",
+  },
+];
+
+export const demoHistory = [
+  ...Array.from({ length: 40 }, (_, index) => historyJob("rejected", index)),
+  ...Array.from({ length: 32 }, (_, index) => historyJob("closed", index + 40)),
+  ...Array.from({ length: 4 }, (_, index) => historyJob("withdrawn", index + 72)),
+  ...Array.from({ length: 3 }, (_, index) => ({ ...historyJob("rejected", index + 76), notes: "Interview process completed" })),
+  { ...historyJob("offer", 80), notes: "Three interview stages and offer" },
+];
+
+export const demoScout = {
+  status: "healthy",
+  lastRunAt: new Date(Date.now() - 7 * 60000).toISOString(),
+  nextRunAt: new Date(Date.now() + 8 * 60000).toISOString(),
+  lastNewCount: 2,
+  apiConfigured: true,
+  emailConfigured: true,
+  telegramConfigured: false,
+  sourceCount: 3,
+  attribution: "Jobs by Adzuna",
+};
+
+function relativeDate(daysAgo) {
+  const date = new Date();
+  date.setDate(date.getDate() - daysAgo);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function historyJob(status, index) {
+  const families = ["Customer Success Manager", "Account Manager", "Service Delivery Manager", "Client Operations Specialist", "Customer Support Manager"];
+  return {
+    id: `demo-history-${index}`,
+    title: families[index % families.length],
+    company: `Example company ${index + 1}`,
+    location: index % 4 === 0 ? "Glasgow · Hybrid" : "UK · Remote",
+    appliedDate: relativeDate(20 + index),
+    postedDate: relativeDate(25 + index),
+    status,
+    source: "Legacy tracker",
+    sourceId: `legacy-${index}`,
+  };
+}
