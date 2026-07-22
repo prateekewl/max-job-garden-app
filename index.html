@@ -16,7 +16,7 @@
     <link rel="manifest" href="./manifest.webmanifest?v=20260720-7">
     <link rel="icon" href="./assets/garden-mark.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" sizes="192x192" href="./assets/garden-mark-192.png">
-    <link rel="stylesheet" href="./styles.css?v=20260720-13">
+    <link rel="stylesheet" href="./styles.v20260722-17.css">
   </head>
   <body>
     <a class="skip-link" href="#viewContent">Skip to the workspace</a>
@@ -145,6 +145,33 @@
       </form>
     </dialog>
 
+    <dialog class="form-dialog" id="applicationRecordDialog" aria-labelledby="applicationRecordTitle">
+      <form class="dialog-form" id="applicationRecordForm">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow">Save what was actually sent</p>
+            <h2 id="applicationRecordTitle">Record this application</h2>
+            <p>The message, CV and any cover letter stay attached to this role, so follow-ups and interviews use the same evidence.</p>
+          </div>
+          <button class="icon-button" type="button" data-close-dialog="applicationRecordDialog" aria-label="Close"><svg aria-hidden="true"><use href="#icon-close"></use></svg></button>
+        </div>
+        <input name="jobId" type="hidden">
+        <div class="field-grid">
+          <label class="field"><span>Applied date</span><input name="appliedAt" type="date" required></label>
+          <label class="field"><span>Status</span><select name="status"><option value="applied">Applied</option><option value="follow_up">Follow-up due</option><option value="interview">Interview</option><option value="offer">Offer</option><option value="rejected">Not progressing</option><option value="withdrawn">Withdrawn</option><option value="closed">No response</option></select></label>
+          <label class="field"><span>Contact name</span><input name="contactName" type="text" placeholder="Recruiter or hiring manager"></label>
+          <label class="field"><span>Contact email</span><input name="contactEmail" type="email" placeholder="name@company.com"></label>
+        </div>
+        <label class="field full"><span>Exact message sent</span><textarea name="message" rows="8" required placeholder="Paste the final message exactly as it was submitted."></textarea></label>
+        <label class="field full upload-field"><span>Exact CV submitted</span><input name="cv" type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"><small>PDF or Word, up to 8 MB. For an existing record, leave empty to keep its attached CV.</small></label>
+        <label class="field full upload-field"><span>Cover letter submitted (optional)</span><input name="coverLetter" type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"><small>Attach the exact PDF or Word file sent. Leave empty if this application did not include one.</small></label>
+        <div class="dialog-footer">
+          <button class="button quiet" type="button" data-close-dialog="applicationRecordDialog">Cancel</button>
+          <button class="button primary" type="submit"><svg aria-hidden="true"><use href="#icon-check"></use></svg>Save application pack</button>
+        </div>
+      </form>
+    </dialog>
+
     <dialog class="small-dialog" id="accountDialog" aria-labelledby="accountDialogTitle">
       <div class="account-dialog-content">
         <div class="dialog-heading compact">
@@ -194,6 +221,6 @@
     </svg>
 
     <script src="./assets/pdf-lib.min.js"></script>
-    <script type="module" src="./app.js?v=20260720-14"></script>
+    <script type="module" src="./app.v20260722-17.js"></script>
   </body>
 </html>
