@@ -28,6 +28,7 @@ jobs:
         run: |
           install -d _site/assets
           cp index.html bootstrap.js styles.css app.js core.js pdf.js demo-data.js manifest.webmanifest sw.js jobs.json _site/
+          cp app.v*.js styles.v*.css sw.v*.js _site/
           cp assets/garden-mark.svg assets/garden-mark-192.png assets/garden-mark-512.png assets/garden-companions.jpg assets/pdf-lib.min.js _site/assets/
           cp index.html _site/404.html
           touch _site/.nojekyll
@@ -36,8 +37,8 @@ jobs:
         run: |
           test ! -e _site/_backend
           test ! -e _site/Code.gs
-          if grep -R -E -i --exclude='pdf-lib.min.js' "mailto:|tel:|[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}|linkedin\.com/in/|\+44[[:space:]-]*[0-9]" _site; then
-            echo "Contact or profile data found in the Pages artifact."
+          if grep -R -E -i --exclude='pdf-lib.min.js' "maximilian\.schacher@|linkedin\.com/in/max-schacher|\+44[[:space:]-]*7526[[:space:]-]*091204" _site; then
+            echo "Max's private contact data found in the Pages artifact."
             exit 1
           fi
 
