@@ -295,7 +295,7 @@ function loadLocalWorkspace() {
   const storedPreferences = normalisePreferences(saved.preferences || DEFAULT_PREFERENCES);
   state.preferences = normalisePreferences({
     ...storedPreferences,
-    preferredLocations: uniqueList([...storedPreferences.preferredLocations.filter((place) => String(place).toLowerCase() !== "scotland"), "Edinburgh"]),
+    preferredLocations: uniqueList(["Glasgow", "Renfrewshire", ...storedPreferences.preferredLocations.filter((place) => !["glasgow", "renfrewshire", "scotland", "edinburgh"].includes(String(place).toLowerCase())), "Edinburgh"]),
   });
   state.jobs = (saved.jobs || [])
     .map(normaliseJob)
@@ -631,9 +631,9 @@ function renderDiscover(jobs) {
     remote: freshCandidates.filter((job) => job.workPattern === "remote" || /remote/i.test(job.location)).length,
     saved: trackedCandidates.filter((job) => job.status === "saved").length,
     unseen: trackedCandidates.filter((job) => jobAge(job) <= state.feedFreshnessDays && job.status === "new" && !job.seenAt).length,
-    glasgow: freshCandidates.filter((job) => maxLocationRank(job) === 0).length,
-    remoteUk: freshCandidates.filter((job) => maxLocationRank(job) === 1).length,
-    edinburgh: freshCandidates.filter((job) => maxLocationRank(job) === 2).length,
+    glasgow: freshCandidates.filter((job) => [0, 1].includes(maxLocationRank(job))).length,
+    remoteUk: freshCandidates.filter((job) => maxLocationRank(job) === 2).length,
+    edinburgh: freshCandidates.filter((job) => maxLocationRank(job) === 3).length,
   };
   const checkedSources = state.feedSourceCount || state.scout.sourceCount || 1;
   const headline = recommendedMode ? "Best matches for Max" : "Find your next role";
@@ -856,7 +856,7 @@ function renderSettings() {
               <div class="field-grid"><label class="field"><span>Reward these terms</span>${tagEditor("includeTerms", prefs.includeTerms, "Add a skill or phrase")}</label><label class="field"><span>Avoid these terms</span>${tagEditor("excludeTerms", prefs.excludeTerms, "Add an exclusion")}</label></div>
             </article>
             <article class="settings-card">
-              <div class="settings-card-header"><div><h3>Pay, place, and pace</h3><p>Unknown salary stays visible, but the score explains the uncertainty.</p></div></div>
+              <div class="settings-card-header"><div><h3>Pay, place, and pace</h3><p>Glasgow hybrid comes first, then other Glasgow-area roles, UK remote, and Edinburgh. Jobs requiring a driving licence or car are excluded.</p></div></div>
               <div class="field-grid three">
                 <label class="field"><span>Minimum salary</span><input name="minimumSalary" type="number" step="1000" min="0" value="${prefs.minimumSalary}" /></label>
                 <label class="field"><span>Preferred salary</span><input name="preferredSalary" type="number" step="1000" min="0" value="${prefs.preferredSalary}" /></label>
@@ -1942,10 +1942,10 @@ function matchesJobSearch(job, query) {
 function matchesSearchLocation(job, location) {
   if (!location || location === "all") return true;
   const rank = maxLocationRank(job);
-  if (location === "glasgow") return rank === 0;
-  if (location === "remote-uk") return rank === 1;
-  if (location === "edinburgh") return rank === 2;
-  if (location === "other-remote") return rank === 3;
+  if (location === "glasgow") return rank === 0 || rank === 1;
+  if (location === "remote-uk") return rank === 2;
+  if (location === "edinburgh") return rank === 3;
+  if (location === "other-remote") return rank === 4;
   return true;
 }
 
@@ -2269,6 +2269,6 @@ function deviceLabel() {
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator && window.isSecureContext) {
-    navigator.serviceWorker.register("./sw.v20260722-17.js", { updateViaCache: "none" }).then((registration) => registration.update()).catch(() => {});
+    navigator.serviceWorker.register("./sw.v20260723-18.js", { updateViaCache: "none" }).then((registration) => registration.update()).catch(() => {});
   }
 }

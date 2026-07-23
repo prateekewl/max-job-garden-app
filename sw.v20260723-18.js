@@ -1,10 +1,10 @@
-const CACHE_NAME = "max-job-garden-v20260722-17";
+const CACHE_NAME = "max-job-garden-v20260723-18";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./bootstrap.js",
-  "./styles.v20260722-17.css",
-  "./app.v20260722-17.js",
+  "./styles.v20260723-18.css",
+  "./app.v20260723-18.js",
   "./core.js",
   "./pdf.js",
   "./demo-data.js",

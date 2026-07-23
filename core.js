@@ -230,6 +230,22 @@ export function isMaxLocationEligible(input = {}) {
   return /\bunited kingdom\b|\buk\b|\beurope\b|\bemea\b|\bworldwide\b|\banywhere\b|\bglobal\b/.test(location);
 }
 
+export function requiresDriving(input = {}) {
+  const job = normaliseJob(input);
+  const body = `${job.title} ${job.location} ${job.description}`.toLowerCase().replace(/\s+/g, " ");
+  const explicitLicence = [
+    /\b(?:full|valid|clean|current)(?:\s+uk)?\s+driving\s+licen[cs]e\b/,
+    /\bdriving\s+licen[cs]e\b.{0,50}\b(?:required|essential|mandatory|needed|necessar(?:y|ily))\b/,
+    /\b(?:required|essential|mandatory|must\s+have|need(?:ed)?(?:\s+to\s+have)?)\b.{0,50}\bdriving\s+licen[cs]e\b/,
+  ].some((pattern) => pattern.test(body));
+  const explicitVehicle = [
+    /\b(?:must\s+have|need(?:ed)?(?:\s+to\s+have)?|require(?:d|ment)?(?:\s+to\s+have)?)\b.{0,45}\b(?:own|access\s+to\s+(?:a|your\s+own))\s+(?:car|vehicle)\b/,
+    /\b(?:own\s+(?:car|vehicle)|access\s+to\s+(?:a|your\s+own)\s+(?:car|vehicle))\b.{0,45}\b(?:required|essential|mandatory|needed|necessar(?:y|ily))\b/,
+    /\bcar\s+owner\b/,
+  ].some((pattern) => pattern.test(body));
+  return explicitLicence || explicitVehicle;
+}
+
 export function isMaxRoleEligible(input = {}) {
   const title = String(input.title || "").toLowerCase();
   const body = `${title} ${String(input.description || "").toLowerCase()}`;
@@ -251,7 +267,7 @@ export function isMaxRoleEligible(input = {}) {
 
 export function isMaxSearchEligible(input = {}) {
   const title = String(input.title || "").toLowerCase().replace(/\s+/g, " ").trim();
-  if (!title || HARD_TITLE_MISMATCH.test(title) || hasHardCvRequirementMismatch(input)) return false;
+  if (!title || HARD_TITLE_MISMATCH.test(title) || hasHardCvRequirementMismatch(input) || requiresDriving(input)) return false;
   if (/\btechnical account manager\b|\bstrategic account manager\b|\bkey account manager\b|\bbusiness relationship manager\b/.test(title)) return false;
   if (PRIMARY_ROLE_TITLE.test(title) || ADJACENT_ROLE_TITLE.test(title)) return true;
   if (GENERIC_OPERATIONS_TITLE.test(title)) {
@@ -283,12 +299,15 @@ function isSalesLedRole(body = "") {
 export function maxLocationRank(input = {}) {
   const job = normaliseJob(input);
   const location = `${job.location} ${job.workPattern}`.toLowerCase().replace(/[·|/]/g, " ").replace(/\s+/g, " ").trim();
-  if (/\bglasgow\b|\brenfrewshire\b/.test(location)) return 0;
+  const glasgowArea = /\bglasgow\b|\brenfrewshire\b|\bpaisley\b|\bclydebank\b|\bbishopbriggs\b|\bcoatbridge\b|\bbellshill\b/.test(location);
+  const hybrid = /\bhybrid\b/.test(location);
+  if (glasgowArea && hybrid) return 0;
+  if (glasgowArea) return 1;
   const remote = /\bremote\b|work from home|home-based/.test(location);
-  if (remote && /\bunited kingdom\b|\buk\b/.test(location)) return 1;
-  if (/\bedinburgh\b/.test(location)) return 2;
-  if (remote) return 3;
-  return 4;
+  if (remote && /\bunited kingdom\b|\buk\b/.test(location)) return 2;
+  if (/\bedinburgh\b/.test(location)) return 3;
+  if (remote) return 4;
+  return 5;
 }
 
 export function normaliseStatus(value = "new") {
