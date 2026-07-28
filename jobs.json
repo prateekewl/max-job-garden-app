@@ -1,7 +1,31 @@
 {
-  "generatedAt": "2026-07-28T05:51:06.886Z",
+  "generatedAt": "2026-07-28T08:41:02.619Z",
   "freshnessWindowDays": 30,
   "jobs": [
+    {
+      "id": "sse-c9f950582ec4114a3de9a4dc24373296",
+      "title": "Service Operations Manager",
+      "company": "SSE",
+      "location": "Reading, Berkshire, Berkshire · Portsmouth · Glasgow, Renfrewshire, Renfrewshire",
+      "salary": "Salary not listed",
+      "salaryMin": 0,
+      "salaryMax": 0,
+      "source": "SSE careers",
+      "sourceId": "c9f950582ec4114a3de9a4dc24373296",
+      "url": "https://careers.sse.com/jobs/service-operations-manager-portsmouth-united-kingdom-reading-berkshire-berkshire-glasgow-renfrewshire-renfrewshire",
+      "postedDate": "2026-07-28",
+      "discoveredAt": "2026-07-28T08:32:43Z",
+      "workPattern": "hybrid",
+      "contractType": "FULL_TIME",
+      "category": "",
+      "benefits": [],
+      "tags": [],
+      "description": "Base Location: You'll be expected to spend 50% of your working week in one of the following locations Havant, Reading or Glasgow Salary: £59,800 - £89,800 + performance-related bonus and a range of benefits to support your finances, wellbeing and family. Working Pattern: Permanent | Full Time | Flexible First options available The role The IT & OT Service Operations Manager is responsible for overseeing the seamless integration and management of IT and Operational Technology (OT) services within the organisation delivered by the IT Outsource partner. This role ensures that both IT and OT services align with the strategic objectives and operational requirements of the business, delivering optimal performance, reliability, and security to maximise availability and ensure a seamless, positive user experience. The individual will act as a key liaison between internal stakeholders and external service providers, ensuring effective governance and operational oversight of the contractual performance of the Service Integrator. You will Service Integration and Management (SIAM) : Manage the operational integration of IT and OT services to current industry standard and relevant contractual agreements, ensuring cohesive and efficient operations across both domains. Outsourced and Third-Party Collaboration: Manage relationships with outsourced service providers, SSE teams and third-party partners to ensure delivery of contracted services and adherence to SLAs. Operational Oversight : Provide operational oversight of outsourced delivery partners, ensuring compliance with service level agreements (SLAs) and key performance indicators (KPIs). Major Incident Management : Support Major Incident Management, coordinating responses to incidents and ensuring timely resolution to minimise impact on business operations. You will be part of the Service Operations Duty Manager roster and on call to provide 24/7 support. IT Service Management (ITSM): Implement and maintain IT service management processes and frameworks, ensuring best practices are followed through close collaboration with Service Strategy and Service/Process Architecture. You have Understanding of both IT and OT operational environments, including how technology performance, resilience, and availability directly affect business continuity, safety, and operational outcomes. Familiarity with recognised industry standards and best practices for service operations and incident management, supporting consistent processes, effective governance, and continual service improvement. Familiarity with outsourcing and third-party service delivery models, including working with suppliers to manage performance, clarify ownership, and maintain service quality across end-to-end operations. Proficiency in ITIL principles and service management tools, with the ability to apply structured processes to incident, problem, change, request, and service performance management. Strong incident management skills, including experience acting as a key incident commander to coordinate resolver groups, manage communications, drive timely resolution, and reduce business impact during major incidents. About SSE SSE’s purpose is to provide energy needed today while building a better world of energy for tomorrow. We do this by developing, building, operating and investing in electricity infrastructure and businesses needed in the energy transition. Our Transforming for Growth investment plan sees us investing £33bn in critical electricity infrastructure across the five years to 2030. Our Finance teams create value for all SSE business areas and play a key role in fulfilling our obligations as a FTSE100 UK-listed company. In a highly regulated and competitive environment, their experts keep us powering ahead by identifying efficiencies, providing advice and optimising our financial strategies. Flexible benefits to fit your life Enjoy discounts on private healthcare and gym memberships. Wellbeing benefits like a free online GP and 24/7 counselling service. Interest-free loans on tech and transport season tickets, or a new bike with our Cycle to Work scheme. As well as generous family entitlements such as maternity and adoption pay, and paternity leave. Work with an equal opportunity employer SSE will make any reasonable adjustments you need to ensure that your application and experience with us is positive. Please contact the company careers page / 01738 275 846 to discuss how we can support you. We're dedicated to fostering an open and inclusive workplace where people from all backgrounds can thrive. We create equal opportunities for everyone to succeed and especially welcome applications from those who may not be well represented in our workforce or industry. Ready to apply? Start your online application using the Apply Now box on this page. We only accept applications made online. We'll be in touch after the closing date to let you know if we'll be taking your application further. If you're offered a role with SSE, you'll need to complete a criminality check and a credit check before you start work. #LI-DB1 #LI-Hybrid",
+      "aggregated": false,
+      "employerNamed": true,
+      "feedManaged": true,
+      "status": "new"
+    },
     {
       "id": "nhs-scotland-235877",
       "title": "Service Delivery Manager",
@@ -316,6 +340,30 @@
     }
   ],
   "searchJobs": [
+    {
+      "id": "sse-c9f950582ec4114a3de9a4dc24373296",
+      "title": "Service Operations Manager",
+      "company": "SSE",
+      "location": "Reading, Berkshire, Berkshire · Portsmouth · Glasgow, Renfrewshire, Renfrewshire",
+      "salary": "Salary not listed",
+      "salaryMin": 0,
+      "salaryMax": 0,
+      "source": "SSE careers",
+      "sourceId": "c9f950582ec4114a3de9a4dc24373296",
+      "url": "https://careers.sse.com/jobs/service-operations-manager-portsmouth-united-kingdom-reading-berkshire-berkshire-glasgow-renfrewshire-renfrewshire",
+      "postedDate": "2026-07-28",
+      "discoveredAt": "2026-07-28T08:32:43Z",
+      "workPattern": "hybrid",
+      "contractType": "FULL_TIME",
+      "category": "",
+      "benefits": [],
+      "tags": [],
+      "description": "Base Location: You'll be expected to spend 50% of your working week in one of the following locations Havant, Reading or Glasgow Salary: £59,800 - £89,800 + performance-related bonus and a range of benefits to support your finances, wellbeing and family. Working Pattern: Permanent | Full Time | Flexible First options available The role The IT & OT Service Operations Manager is responsible for overseeing the seamless integration and management of IT and Operational Technology (OT) services within the organisation delivered by the IT Outsource partner. This role ensures that both IT and OT services align with the strategic objectives and operational requirements of the business, delivering optimal performance, reliability, and security to maximise availability and ensure a seamless, positive user experience. The individual will act as a key liaison between internal stakeholders and external service providers, ensuring effective governance and operational oversight of the contractual performance of the Service Integrator. You will Service Integration and Management (SIAM) : Manage the operational integration of IT and OT services to current industry standard and relevant contractual agreements, ensuring cohesive and efficient operations across both domains. Outsourced and Third-Party Collaboration: Manage relationships with outsourced service providers, SSE teams and third-party partners to ensure delivery of contracted services and adherence to SLAs. Operational Oversight : Provide operational oversight of outsourced delivery partners, ensuring compliance with service level agreements (SLAs) and key performance indicators (KPIs). Major Incident Management : Support Major Incident Management, coordinating responses to incidents and ensuring timely resolution to minimise impact on business operations. You will be part of the Service Operations Duty Manager roster and on call to provide 24/7 support. IT Service Management (ITSM): Implement and maintain IT service management processes and frameworks, ensuring best practices are followed through close collaboration with Service Strategy and Service/Process Architecture. You have Understanding of both IT and OT operational environments, including how technology performance, resilience, and availability directly affect business continuity, safety, and operational outcomes. Familiarity with recognised industry standards and best practices for service operations and incident management, supporting consistent processes, effective governance, and continual service improvement. Familiarity with outsourcing and third-p",
+      "aggregated": false,
+      "employerNamed": true,
+      "feedManaged": true,
+      "status": "new"
+    },
     {
       "id": "nhs-scotland-235877",
       "title": "Service Delivery Manager",
