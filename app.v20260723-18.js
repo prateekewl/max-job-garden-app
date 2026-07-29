@@ -48,100 +48,9 @@ const KEYS = Object.freeze({
   cvTemplate: "mjg:cv-template:v1",
 });
 
-const WEDO_APPLICATION = Object.freeze({
-  id: "wedo-customer-success-manager-2026-07-22",
-  jobId: "wedo-customer-success-manager-2026-07-22",
-  company: "WeDo",
-  roleTitle: "Customer Success Manager",
-  jobUrl: "https://www.wedotech.uk/job/customer-success-manager",
-  location: "UK Remote / Home Based",
-  salary: "£45,000 - £55,000 base + £75,000 OTE",
-  appliedAt: "2026-07-22",
-  status: "applied",
-  message: `I’m applying for the Customer Success Manager position. I have experience managing client relationships, coordinating service delivery, resolving escalations and supporting B2B account development. My background also includes cloud-solution discovery at IONOS Cloud and CRM experience including Salesforce.
-
-The role’s focus on customer outcomes, technology and long-term account growth strongly matches my experience and career direction. I would welcome the opportunity to discuss my suitability.
-
-Kind regards,
-
-Max Schacher`,
-  cvFilename: "Max Schacher - CV - WeDo Customer Success Manager.pdf",
-  cvKey: "",
-  cvContentType: "application/pdf",
-  contactName: "Pierre Rodriguez",
-  contactEmail: "pierre.rodriguez@wedotech.uk",
-  nextActionAt: "2026-07-29",
-  createdAt: "2026-07-22T14:03:28+01:00",
-  updatedAt: "2026-07-22T14:03:28+01:00",
-});
-
-const MUCK_RACK_APPLICATION = Object.freeze({
-  id: "muck-rack-customer-success-manager-uk-2026-07-22",
-  jobId: "greenhouse-muckrack-8603062002",
-  company: "Muck Rack",
-  roleTitle: "Customer Success Manager, UK",
-  jobUrl: "https://job-boards.greenhouse.io/muckrack/jobs/8603062002",
-  location: "Remote (United Kingdom)",
-  salary: "£56,500 - £63,500 base + £80,500 OTE+",
-  appliedAt: "2026-07-22",
-  status: "applied",
-  message: `Dear Muck Rack Hiring Team,
-
-I am applying for the Customer Success Manager, UK position. My background spans client operations, service delivery, workforce coordination and B2B account development across technology-driven and operational environments.
-
-At Job&Talent, I managed day-to-day relationships across multiple client accounts as a primary operational contact. I coordinated onboarding and service delivery, aligned internal teams with client priorities, and resolved service issues and escalations to support continuity and customer satisfaction. This experience has developed the structured communication, ownership and cross-functional collaboration required to support complex customer relationships.
-
-Earlier in my career, I conducted B2B discovery for IONOS Cloud, maintained customer activity in Salesforce, and collaborated with sales and marketing teams on pipeline development. At StepStone and EGYM Wellpass, I built B2B relationships, recommended solutions around customer needs, supported onboarding and worked in target-driven account environments.
-
-Muck Rack's focus on customer adoption, trusted relationships and measurable outcomes strongly appeals to me. I would bring a practical service mindset, calm escalation management and a genuine interest in learning the media-intelligence and communications-technology context of your customers.
-
-I would welcome the opportunity to discuss how my client operations and account-development experience could contribute to Muck Rack's UK Customer Success team.
-
-Kind regards,
-
-Max Schacher`,
-  cvFilename: "Max-Schacher-CV-Muck-Rack-Customer-Success-Manager-UK.pdf",
-  cvKey: "",
-  cvDataUrl: "./assets/submitted/Max-Schacher-CV-Muck-Rack-Customer-Success-Manager-UK.pdf",
-  cvContentType: "application/pdf",
-  coverLetterFilename: "Max-Schacher-Cover-Letter-Muck-Rack.pdf",
-  coverLetterKey: "",
-  coverLetterDataUrl: "./assets/submitted/Max-Schacher-Cover-Letter-Muck-Rack.pdf",
-  coverLetterContentType: "application/pdf",
-  contactName: "Muck Rack Hiring Team",
-  contactEmail: "",
-  nextActionAt: "2026-07-29",
-  createdAt: "2026-07-22T19:00:00+01:00",
-  updatedAt: "2026-07-22T19:00:00+01:00",
-});
-
-const MURAL_HEALTH_APPLICATION = Object.freeze({
-  id: "mural-health-customer-experience-specialist-2026-07-22",
-  jobId: "greenhouse-muralhealth-4294738009",
-  company: "Mural Health",
-  roleTitle: "Customer Experience Specialist - UK Remote",
-  jobUrl: "https://job-boards.greenhouse.io/muralhealth/jobs/4294738009",
-  location: "Remote UK",
-  salary: "£38,000 - £50,000",
-  appliedAt: "2026-07-22",
-  status: "applied",
-  message: "No separate message field was provided in the application form. Max submitted the tailored CV and cover letter recorded below.",
-  cvFilename: "Max-Schacher-CV-Mural-Health-Customer-Experience-Specialist.pdf",
-  cvKey: "",
-  cvDataUrl: "./assets/submitted/Max-Schacher-CV-Mural-Health-Customer-Experience-Specialist.pdf",
-  cvContentType: "application/pdf",
-  coverLetterFilename: "Max-Schacher-Cover-Letter-Mural-Health.pdf",
-  coverLetterKey: "",
-  coverLetterDataUrl: "./assets/submitted/Max-Schacher-Cover-Letter-Mural-Health.pdf",
-  coverLetterContentType: "application/pdf",
-  contactName: "Mural Health Hiring Team",
-  contactEmail: "careers@muralhealth.com",
-  nextActionAt: "2026-07-29",
-  createdAt: "2026-07-22T20:50:00+01:00",
-  updatedAt: "2026-07-22T20:50:00+01:00",
-});
-
-const BUILT_IN_APPLICATIONS = Object.freeze([WEDO_APPLICATION, MUCK_RACK_APPLICATION, MURAL_HEALTH_APPLICATION]);
+// PRIVATE_APPLICATIONS_START
+const BUILT_IN_APPLICATIONS = Object.freeze([]);
+// PRIVATE_APPLICATIONS_END
 
 const VIEW_META = Object.freeze({
   today: { eyebrow: "Your focus", title: "Today" },
@@ -702,7 +611,7 @@ function renderPipeline(jobs, stats) {
             ${groups.map((group) => `
               <section class="pipeline-column" aria-label="${escapeHtml(group.label)}">
                 <div class="pipeline-column-header"><span>${escapeHtml(group.label)}</span><strong>${group.total ?? group.jobs.length}</strong></div>
-                <div class="pipeline-list">
+                <div class="pipeline-list ${group.id === "applied" && group.jobs.length > 4 ? "pipeline-list-scroll" : ""}"${group.id === "applied" && group.jobs.length > 4 ? ` tabindex="0" aria-label="Scroll through ${group.jobs.length} applied and follow-up jobs"` : ""}>
                   ${group.jobs.length ? group.jobs.map(renderPipelineCard).join("") : `<div class="pipeline-empty">Nothing here right now</div>`}
                 </div>
               </section>`).join("")}
@@ -1074,6 +983,13 @@ function openApplicationPack(applicationId) {
   const coverLetterHref = application.coverLetterKey ? `/api/applications/${encodeURIComponent(application.id)}/cover-letter` : application.coverLetterDataUrl || "";
   const coverLetterPreviewHref = application.coverLetterKey ? `${coverLetterHref}?preview=1#toolbar=0&navpanes=0&view=FitH` : coverLetterHref;
   const canPreviewCoverLetter = Boolean(coverLetterPreviewHref) && (application.coverLetterContentType || "application/pdf").includes("pdf");
+  const coverLetterHeading = coverLetterHref ? "Cover letter submitted" : application.coverLetterStatus || "No cover letter submitted";
+  const messageHeading = application.messageLabel || "Exact message sent";
+  const answerSections = Array.isArray(application.applicationAnswers) ? application.applicationAnswers : [];
+  const applicationAnswersHtml = answerSections.length ? `<article class="detail-card application-answers-card">
+    <div class="application-message-heading"><div><h3><svg aria-hidden="true"><use href="#icon-check"></use></svg>Submitted form answers</h3><p>Saved from the final Workday review.</p></div></div>
+    <div class="application-answer-sections">${answerSections.map((section) => `<section><h4>${escapeHtml(section.title || "Application details")}</h4><dl>${(section.items || []).map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`).join("")}</dl></section>`).join("")}</div>
+  </article>` : "";
   jobDialog.classList.add("application-pack-dialog");
   jobDialogContent.innerHTML = `<div class="job-dialog-shell application-pack-shell">
     <div class="job-dialog-header"><button class="icon-button" type="button" data-close-dialog="jobDialog" aria-label="Close"><svg aria-hidden="true"><use href="#icon-close"></use></svg></button></div>
@@ -1082,8 +998,9 @@ function openApplicationPack(applicationId) {
       <article class="detail-card application-tracking-card"><div class="application-tracking-heading"><h3><svg aria-hidden="true"><use href="#icon-calendar"></use></svg>Application tracking</h3><label class="field compact-status"><span>Update status</span><select data-application-status="${escapeHtml(application.id)}">${pipelineOptions(application.status)}</select></label></div><dl class="application-facts"><div><dt>Applied</dt><dd>${escapeHtml(formatDate(application.appliedAt) || application.appliedAt)}</dd></div><div><dt>Next action</dt><dd>${escapeHtml(formatDate(application.nextActionAt) || "Not scheduled")}</dd></div><div><dt>Contact</dt><dd>${escapeHtml(application.contactName || application.contactEmail || "Not recorded")}</dd></div><div><dt>Salary</dt><dd>${escapeHtml(application.salary || "Not recorded")}</dd></div></dl></article>
       <div class="application-evidence-grid">
         <article class="detail-card cv-attachment-card"><div class="application-evidence-heading"><div><h3><svg aria-hidden="true"><use href="#icon-file"></use></svg>Exact CV submitted</h3><p>${escapeHtml(application.cvFilename || "No CV filename recorded")}</p></div>${cvHref ? `<a class="button quiet small" href="${escapeHtml(cvHref)}" download="${escapeHtml(application.cvFilename || "Max-Schacher-CV.pdf")}" aria-label="Download exact submitted CV"><svg aria-hidden="true"><use href="#icon-download"></use></svg>Download</a>` : ""}</div>${canPreviewCv ? `<div class="application-cv-frame"><iframe src="${escapeHtml(cvPreviewHref)}" title="Preview of ${escapeHtml(application.cvFilename || "the submitted CV")}" loading="lazy"></iframe></div>` : cvHref ? `<div class="application-preview-fallback"><svg aria-hidden="true"><use href="#icon-file"></use></svg><p>Preview is unavailable for this file type.</p><a class="button primary" href="${escapeHtml(cvHref)}" download="${escapeHtml(application.cvFilename || "Max-Schacher-CV.pdf")}">Download submitted CV</a></div>` : `<div class="application-preview-fallback"><p>The submitted CV has not been attached yet.</p><button class="button quiet" type="button" data-application-action="edit" data-application-id="${escapeHtml(application.id)}"><svg aria-hidden="true"><use href="#icon-plus"></use></svg>Attach CV</button></div>`}</article>
-        <article class="detail-card cv-attachment-card"><div class="application-evidence-heading"><div><h3><svg aria-hidden="true"><use href="#icon-file"></use></svg>Cover letter submitted</h3><p>${escapeHtml(application.coverLetterFilename || "No cover letter was sent")}</p></div>${coverLetterHref ? `<a class="button quiet small" href="${escapeHtml(coverLetterHref)}" download="${escapeHtml(application.coverLetterFilename || "Max-Schacher-Cover-Letter.pdf")}" aria-label="Download submitted cover letter"><svg aria-hidden="true"><use href="#icon-download"></use></svg>Download</a>` : ""}</div>${canPreviewCoverLetter ? `<div class="application-cv-frame"><iframe src="${escapeHtml(coverLetterPreviewHref)}" title="Preview of ${escapeHtml(application.coverLetterFilename || "the submitted cover letter")}" loading="lazy"></iframe></div>` : coverLetterHref ? `<div class="application-preview-fallback"><svg aria-hidden="true"><use href="#icon-file"></use></svg><p>Preview is unavailable for this file type.</p><a class="button primary" href="${escapeHtml(coverLetterHref)}" download="${escapeHtml(application.coverLetterFilename || "Max-Schacher-Cover-Letter.pdf")}">Download cover letter</a></div>` : `<div class="application-preview-fallback"><p>No cover letter was attached to this application.</p><button class="button quiet" type="button" data-application-action="edit" data-application-id="${escapeHtml(application.id)}"><svg aria-hidden="true"><use href="#icon-plus"></use></svg>Attach cover letter</button></div>`}</article>
-        <article class="detail-card application-message-card"><div class="application-message-heading"><div><h3><svg aria-hidden="true"><use href="#icon-mail"></use></svg>Exact message sent</h3><p>Saved word-for-word from the application.</p></div><button class="button quiet small" type="button" data-application-action="copy-message" data-application-id="${escapeHtml(application.id)}"><svg aria-hidden="true"><use href="#icon-copy"></use></svg>Copy</button></div><pre>${escapeHtml(application.message || "No message recorded.")}</pre></article>
+        <article class="detail-card cv-attachment-card"><div class="application-evidence-heading"><div><h3><svg aria-hidden="true"><use href="#icon-file"></use></svg>${escapeHtml(coverLetterHeading)}</h3><p>${escapeHtml(application.coverLetterFilename || application.coverLetterStatus || "No cover letter was sent")}</p></div>${coverLetterHref ? `<a class="button quiet small" href="${escapeHtml(coverLetterHref)}" download="${escapeHtml(application.coverLetterFilename || "Max-Schacher-Cover-Letter.pdf")}" aria-label="Download submitted cover letter"><svg aria-hidden="true"><use href="#icon-download"></use></svg>Download</a>` : ""}</div>${canPreviewCoverLetter ? `<div class="application-cv-frame"><iframe src="${escapeHtml(coverLetterPreviewHref)}" title="Preview of ${escapeHtml(application.coverLetterFilename || "the submitted cover letter")}" loading="lazy"></iframe></div>` : coverLetterHref ? `<div class="application-preview-fallback"><svg aria-hidden="true"><use href="#icon-file"></use></svg><p>Preview is unavailable for this file type.</p><a class="button primary" href="${escapeHtml(coverLetterHref)}" download="${escapeHtml(application.coverLetterFilename || "Max-Schacher-Cover-Letter.pdf")}">Download cover letter</a></div>` : `<div class="application-preview-fallback"><p>${escapeHtml(application.coverLetterStatus || "No cover letter was attached to this application.")}</p></div>`}</article>
+        <article class="detail-card application-message-card"><div class="application-message-heading"><div><h3><svg aria-hidden="true"><use href="#icon-mail"></use></svg>${escapeHtml(messageHeading)}</h3><p>${application.messageLabel ? "Recorded with the submitted application." : "Saved word-for-word from the application."}</p></div><button class="button quiet small" type="button" data-application-action="copy-message" data-application-id="${escapeHtml(application.id)}"><svg aria-hidden="true"><use href="#icon-copy"></use></svg>Copy</button></div><pre>${escapeHtml(application.message || "No message recorded.")}</pre></article>
+        ${applicationAnswersHtml}
       </div>
       <div class="application-pack-actions"><button class="button quiet" type="button" data-application-action="edit" data-application-id="${escapeHtml(application.id)}"><svg aria-hidden="true"><use href="#icon-edit"></use></svg>Edit application pack</button>${application.jobUrl ? `<a class="button quiet" href="${escapeHtml(application.jobUrl)}" target="_blank" rel="noreferrer"><svg aria-hidden="true"><use href="#icon-external"></use></svg>Open advert</a>` : ""}</div>
     </div>

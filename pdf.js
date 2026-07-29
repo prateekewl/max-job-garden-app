@@ -27,8 +27,12 @@ export function withoutPrivateCvTemplate(jobs = []) {
 }
 
 export function buildExactCvTailoring(job, profile = {}) {
-  const skills = rankExistingSkills(job, profile.skills || ORIGINAL_SKILLS);
-  const paragraphs = tailoredProfileParagraphs(skills);
+  const skills = Array.isArray(profile.matchedSkills) && profile.matchedSkills.length
+    ? uniqueList(profile.matchedSkills).slice(0, 10)
+    : rankExistingSkills(job, profile.skills || ORIGINAL_SKILLS);
+  const paragraphs = Array.isArray(profile.summaryParagraphs) && profile.summaryParagraphs.length === 2
+    ? profile.summaryParagraphs.map(cleanPdfText)
+    : tailoredProfileParagraphs(skills);
   return {
     headline: profile.headline || "Client Operations & Service Delivery",
     summary: paragraphs.join("\n\n"),
