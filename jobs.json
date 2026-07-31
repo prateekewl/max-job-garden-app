@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-31T07:38:42.033Z",
+  "generatedAt": "2026-07-31T10:19:19.439Z",
   "freshnessWindowDays": 30,
   "jobs": [
     {
@@ -552,6 +552,30 @@
       "tags": [],
       "description": "About Remote Remote is solving modern organizations’ biggest challenge – navigating global employment compliantly with ease. We make it possible for businesses of all sizes to recruit, pay, and manage international teams. With our core values at heart and future focused work culture, our team works tirelessly on ambitious problems, asynchronously, around the world. You can find Remoters working from 6 different continents (Antarctica left to go!) and all of our positions are fully remote. With Innovation as one of the core values, we have built Automation and AI capabilities into the requirements for every role. We encourage every member of the Remote team to bring their talents, experiences and culture to the table to help us build the best-in-class HR platform. &nbsp; If you are energetic, curious, motivated and ambitious, be part of our world. Apply now and define the future of work! What this job can offer you This is an exciting time to join Remote and make a personal impact in the global employment space as a Business Operations Manager in EOR Business Operations. As a dynamic, curious, and energetic professional, you will help improve how EOR Operations runs end-to-end by driving cross-functional clarity, operating mechanisms, and delivery support across domains. You will partner with senior leaders and stakeholders across EOR Ops and beyond to enable scalable execution, measurable outcomes, and strong adoption of changes that span multiple teams. What you bring Demonstrated experience in business operations, program/project management, operational excellence, or a similar cross-functional role (ideally in EOR Operations or an adjacent operating environment). You have strong project management skills and can take ambiguous, multi-stakeholder work from problem definition through delivery, adoption, and measurement. You can facilitate alignment across teams with differing priorities and influence outcomes without direct authority. You use AI thoughtfully to improve your own workflows and incorporate it into solution design where it meaningfully increases quality, speed, or clarity. You are comfortable working with operational metrics and reporting (e.g., Sigma, Zendesk, Google Sheets) and can translate data into clear insights and recommendations. You write clearly and default to transparent, effective async communication with peers and stakeholders. You are a manager of one : proactive, structured, and able to self-direct with high ownership and follow-through. You love improving systems and ways of working and can demonstrate prior examples of mak",
       "aggregated": false,
+      "employerNamed": true,
+      "feedManaged": true,
+      "status": "new"
+    },
+    {
+      "id": "arbeitnow-remote-senior-tech-operations-specialist-all-genders-352349",
+      "title": "Senior Tech Operations Specialist (all genders)",
+      "company": "Distribusion Technologies",
+      "location": "Remote Europe",
+      "salary": "Salary not listed",
+      "salaryMin": 0,
+      "salaryMax": 0,
+      "source": "Arbeitnow",
+      "sourceId": "remote-senior-tech-operations-specialist-all-genders-352349",
+      "url": "https://www.arbeitnow.com/jobs/companies/distribusion-technologies/remote-senior-tech-operations-specialist-all-genders-352349",
+      "postedDate": "2026-07-31",
+      "discoveredAt": "2026-07-31T08:30:14.000Z",
+      "workPattern": "remote",
+      "contractType": "Mid fulltime permanent",
+      "category": "",
+      "benefits": [],
+      "tags": [],
+      "description": "About us Distribusion is the world’s leading ground transportation marketplace and gives travellers seamless access to ground transportation online, from search to ticket purchase. We have built a cutting-edge B2B technology platform that connects bus, rail and ferry operators in 70+ countries with the biggest online retailers including Google Maps and Booking.com . We are shaping the future of travel and building the largest global network of transport providers and retailers. We are one of the fastest-growing startups in travel, backed by two leading VCs (TQ Ventures & Lightrock), and now, following our recent $80m Series C funding, we are ready to push beyond. The Opportunity We are looking for a Senior Technical Operations Specialist who will join our Control Room team. You will play a vital role in managing ongoing escalations and investigations, ensuring seamless communication with our partners and management during issue resolution, conceptualising new operational flows and guaranteeing the seamless operation of all company products. What you will do: Operational Ownership: Take full ownership of high-level monitoring for the company’s operations, ensuring smooth and efficient processes across the business. Incident Management & Resolution: Lead the management of escalations and incidents, driving swift resolutions and minimizing impact on business operations. Problem-Solving & Innovation: Conduct in-depth technical investigations and collaborate in designing solutions that address complex challenges and improve system performance. Data-Driven Insights: Leverage data analysis to validate hypotheses, uncover insights, and identify optimisation opportunities that drive operational excellence and incident prevention. Strategic Project Leadership: Play a pivotal role in supporting and leading strategic and operational projects that shape the direction and efficiency of the business. Continuous Improvement: Proactively identify and implement key improvements in our product and tech systems from an operational perspective, making a tangible impact on performance. Tool & Process Development: Work closely with the operations team to build, implement, and refine tools and processes that drive efficiency and streamline workflows. Effective Communication: Manage internal and external communication effectively, collaborating across teams to ensure seamless issue resolution and clear, transparent updates. Workplace: Berlin, hybrid or Germany, remote Who you are: You bring at least 3+ years of experience in similar roles in 2nd and 3rd level Technical support, ",
+      "aggregated": true,
       "employerNamed": true,
       "feedManaged": true,
       "status": "new"
