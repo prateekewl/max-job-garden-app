@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-02T22:11:39.377Z",
+  "generatedAt": "2026-08-02T23:14:20.264Z",
   "freshnessWindowDays": 30,
   "jobs": [
     {
@@ -527,7 +527,7 @@
     {
       "id": "nhs-scotland",
       "name": "NHS Scotland",
-      "status": "Healthy"
+      "status": "Temporarily unavailable"
     }
   ]
 }
