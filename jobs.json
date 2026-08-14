@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-14T00:45:31.615Z",
+  "generatedAt": "2026-08-14T03:15:54.543Z",
   "freshnessWindowDays": 30,
   "jobs": [
     {
@@ -617,7 +617,7 @@
     {
       "id": "arbeitnow",
       "name": "Arbeitnow",
-      "status": "Healthy"
+      "status": "Temporarily unavailable"
     },
     {
       "id": "remoteok",
