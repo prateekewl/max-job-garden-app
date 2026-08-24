@@ -330,7 +330,7 @@ async function saveApplicationRecord(form) {
   const index = state.applications.findIndex((item) => item.id === application.id || item.jobId === application.jobId);
   if (index >= 0) state.applications.splice(index, 1, application);
   else state.applications.unshift(application);
-  updateJob(job.id, { status: application.status, appliedDate, nextActionAt: application.nextActionAt, checklist: { ...(job.checklist || {}), submitted: true } }, "Application pack saved", true);
+  updateJob(job.id, { status: application.status, appliedDate: appliedAt, nextActionAt: application.nextActionAt, checklist: { ...(job.checklist || {}), submitted: true } }, "Application pack saved", true);
   saveLocalWorkspace();
   applicationRecordDialog.close();
   jobDialog?.close();
