@@ -20,6 +20,9 @@ import {
   isMaxLocationEligible,
   isMaxRoleEligible,
   isMaxSearchEligible,
+  isOpeningVerified,
+  isRecommendationEligible,
+  sameVacancy,
   localDateKey,
   maxLocationRank,
   nextActionFor,
@@ -445,7 +448,7 @@ function renderShell() {
 function renderToday(jobs, stats) {
   const firstName = (state.person?.name || state.profile?.name || "Max").split(/\s+/)[0];
   const actionJobs = jobs
-    .filter((job) => ACTIVE_STATUSES.has(job.status) && !job.removed)
+    .filter((job) => ACTIVE_STATUSES.has(job.status) && !job.removed && (job.status !== "new" || isRecommendationEligible(job, state.jobs)))
     .map((job) => ({ job, action: nextActionFor(job, state.preferences) }))
     .sort((a, b) => b.action.priority - a.action.priority || b.job.fit.score - a.job.fit.score);
   const focus = actionJobs[0];
@@ -516,7 +519,7 @@ function renderDiscover(jobs) {
   const candidates = recommendedMode ? trackedCandidates : decoratedSearchJobs().filter((job) => !job.removed);
   const freshCandidates = candidates.filter((job) => {
     const age = jobAge(job);
-    return age !== null && age <= state.feedFreshnessDays;
+    return isRecommendationEligible(job, state.jobs) && age !== null && age <= state.feedFreshnessDays;
   });
   const searched = freshCandidates.filter((job) => matchesJobSearch(job, state.search));
   const locationFiltered = searched.filter((job) => recommendedMode || matchesSearchLocation(job, state.searchLocation));
@@ -934,6 +937,7 @@ function renderJobDialog(jobId) {
         ${decisionFact("home", "Work style", job.workPattern === "unknown" ? "Check advert" : titleCase(job.workPattern))}
         ${decisionFact("money", "Salary", salaryText(job))}
         ${decisionFact("calendar", "Posted", freshnessLabel(job).replace(/^Posted /, ""))}
+        ${decisionFact("check", "Applications", isOpeningVerified(job) ? `Open when checked ${timeAgo(job.verification.checkedAt)}` : "Needs a current availability check")}
       </div>
       <div class="job-detail-grid">
         <article class="detail-card decision-card good"><h3><svg aria-hidden="true"><use href="#icon-sparkles"></use></svg>Good signs</h3><ul class="reason-list">${job.fit.reasons.length ? job.fit.reasons.slice(0, 4).map((reason) => `<li>${escapeHtml(reason)}</li>`).join("") : "<li>No strong match signal yet.</li>"}</ul></article>
@@ -1504,12 +1508,18 @@ async function runLocalScout(options = {}) {
     const settled = await Promise.allSettled(enabled.map(fetchLocalSource));
     if (!settled.some((result) => result.status === "fulfilled")) throw new Error("All enabled job sources were unavailable");
     const candidates = settled.flatMap((result) => result.status === "fulfilled" ? result.value : []);
+    // Refresh availability on existing records too; preserve private notes and history.
+    state.jobs = state.jobs.map(job => {
+      const current = candidates.find(candidate => candidate.id === job.id || (candidate.url && candidate.url === job.url));
+      return current ? { ...job, verification: current.verification, deadline: current.deadline, validThrough: current.validThrough }
+        : isManagedFeedJob(job) ? { ...job, verification: { status: "unknown", checkedAt: new Date().toISOString(), reason: "Absent from the latest verified feed" } } : job;
+    });
     const liveFeedKeys = new Set(candidates.flatMap((job) => [job.id, job.url].filter(Boolean)));
     state.jobs = state.jobs.filter((job) => {
       if (job.status !== "new" || !isManagedFeedJob(job)) return true;
       return liveFeedKeys.has(job.id) || liveFeedKeys.has(job.url);
     });
-    const ranked = decorateJobs(uniqueJobs(candidates).filter(isMaxLocationEligible).filter(isMaxRoleEligible), state.preferences, state.jobs)
+    const ranked = decorateJobs(uniqueJobs(candidates).filter(isMaxLocationEligible).filter(isMaxRoleEligible).filter(job => isRecommendationEligible(job, state.jobs)), state.preferences, state.jobs)
       .filter((job) => job.fit.score >= state.preferences.reviewThreshold)
       .sort((a, b) => String(b.postedDate).localeCompare(String(a.postedDate)) || b.fit.score - a.fit.score);
     const fresh = ranked.filter((job) => !existingKeys.has(job.id) && !existingKeys.has(job.url)).slice(0, 80);
@@ -1547,9 +1557,9 @@ async function fetchLocalSource(source) {
     const payload = await response.json();
     state.feedSourceCount = (payload.sources || []).length || state.feedSourceCount;
     state.feedFreshnessDays = Math.max(1, Math.min(30, Number(payload.freshnessWindowDays) || 30));
-    state.searchIndex = (payload.searchJobs || payload.jobs || []).map(normaliseJob);
+    state.searchIndex = (payload.searchJobs || payload.jobs || []).map(normaliseJob).filter(job => isOpeningVerified(job));
     state.generatedAt = payload.generatedAt || state.generatedAt;
-    return (payload.jobs || []).map(normaliseJob);
+    return (payload.jobs || []).map(normaliseJob).filter(job => isOpeningVerified(job));
   }
   if (source.id === "remotive") {
     const response = await fetch(source.endpoint, { cache: "no-store", referrerPolicy: "no-referrer" });
@@ -1773,7 +1783,7 @@ async function notifyNewJobs(freshJobs) {
   if (!("Notification" in window) || Notification.permission !== "granted") return;
   const decorated = decorateJobs(freshJobs.filter((job) => {
     const age = jobAge(job);
-    return age !== null && age <= 3;
+    return isRecommendationEligible(job, state.jobs) && age !== null && age <= 3;
   }), state.preferences, state.jobs).sort((a, b) => b.fit.score - a.fit.score);
   const best = decorated[0];
   if (!best || best.fit.score < state.preferences.alertThreshold) return;
@@ -1823,13 +1833,13 @@ async function downloadCvForJob(job) {
 function decoratedJobs() {
   const seenIds = new Set(loadJson(KEYS.seenIds, []));
   const jobs = state.jobs.map((job) => seenIds.has(job.id) && !job.seenAt ? { ...job, seenAt: "this-device" } : job);
-  return decorateJobs(jobs, state.preferences, jobs);
+  return decorateJobs(jobs.filter(job => job.status !== "new" || isRecommendationEligible(job, state.jobs)), state.preferences, jobs);
 }
 
 function decoratedSearchJobs() {
   const trackedById = new Map(state.jobs.map((job) => [job.id, job]));
   const trackedByUrl = new Map(state.jobs.filter((job) => job.url).map((job) => [job.url, job]));
-  const jobs = state.searchIndex.map((job) => trackedById.get(job.id) || trackedByUrl.get(job.url) || job);
+  const jobs = state.searchIndex.map((job) => trackedById.get(job.id) || trackedByUrl.get(job.url) || state.jobs.find(previous => sameVacancy(job, previous)) || job);
   return decorateJobs(uniqueJobs(jobs).filter(isMaxSearchEligible), state.preferences, state.jobs);
 }
 
@@ -1900,6 +1910,7 @@ function jobAge(job) {
 
 function freshnessLabel(job) {
   const age = jobAge(job);
+  if (!job.postedDate) return age === null ? "Posting date unavailable" : `First found ${age === 0 ? "today" : `${age} days ago`} · posting date unknown`;
   if (age === 0) return "Posted today";
   if (age === 1) return "Posted yesterday";
   if (age !== null) return `Posted ${age} days ago`;
@@ -1908,7 +1919,7 @@ function freshnessLabel(job) {
 
 function freshnessPill(job) {
   const age = jobAge(job);
-  const label = age === 0 ? "Today" : age === 1 ? "Yesterday" : age !== null && age <= 3 ? `${age} days new` : age !== null ? `${age} days old` : "Date unknown";
+  const label = !job.postedDate ? "Posting date unknown" : age === 0 ? "Today" : age === 1 ? "Yesterday" : age !== null && age <= 3 ? `${age} days new` : age !== null ? `${age} days old` : "Date unknown";
   const tone = age !== null && age <= 1 ? "urgent" : age !== null && age <= 3 ? "recent" : "week";
   return `<span class="freshness-pill ${tone}"><svg aria-hidden="true"><use href="#icon-zap"></use></svg>${escapeHtml(label)}</span>`;
 }
@@ -2186,6 +2197,6 @@ function deviceLabel() {
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator && window.isSecureContext) {
-    navigator.serviceWorker.register("./sw.v20260723-18.js", { updateViaCache: "none" }).then((registration) => registration.update()).catch(() => {});
+    navigator.serviceWorker.register("./sw.v20260906-1.js", { updateViaCache: "none" }).then((registration) => registration.update()).catch(() => {});
   }
 }

@@ -483,6 +483,8 @@ export function nextActionFor(jobInput, preferences = DEFAULT_PREFERENCES) {
     if (due && due <= today) return { kind: "follow_up", label: "Follow up today", detail: `Applied ${formatDate(job.appliedDate)}. A short, polite follow-up is ready.`, priority: 94 };
     return { kind: "waiting", label: "Waiting", detail: due ? `Follow up ${formatRelativeDate(due)}.` : "Add an application date to schedule the follow-up.", priority: 30 };
   }
+  if (["rejected", "withdrawn", "closed", "skipped", "hired"].includes(job.status) || job.removed) return { kind: "closed", label: "Closed", detail: "Kept in your application history.", priority: 0 };
+  if (!isOpeningVerified(job)) return { kind: "verify", label: "Check availability", detail: "Confirm this exact vacancy is still accepting applications before preparing it.", priority: 1 };
   if (job.deadline && job.deadline <= addDaysKey(today, 2)) return { kind: "deadline", label: "Deadline soon", detail: `Apply by ${formatDate(job.deadline)}.`, priority: 92 };
   if (job.status === "applying") return { kind: "applying", label: "Finish this application", detail: "Use the checklist, tailor the truthful evidence, then submit.", priority: 88 };
   const age = daysSince(job.postedDate || job.discoveredAt);
@@ -640,6 +642,50 @@ export function daysSince(value, now = new Date()) {
   const cleanDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const cleanNow = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   return Math.max(0, Math.round((cleanNow - cleanDate) / 86400000));
+}
+
+// Posting freshness and application availability are independent facts.
+export function isOpeningVerified(job = {}, now = new Date()) {
+  const check = job.verification;
+  const age = now.getTime() - Date.parse(check?.checkedAt || "");
+  if (check?.status !== "open" || !Number.isFinite(age) || age < 0 || age > 24 * 60 * 60 * 1000) return false;
+  const deadline = job.validThrough || job.deadline;
+  if (deadline) {
+    const cutoff = new Date(/^\d{4}-\d{2}-\d{2}$/.test(deadline) ? `${deadline}T23:59:59.999Z` : deadline);
+    if (Number.isNaN(cutoff.getTime()) || cutoff < now) return false;
+  }
+  return true;
+}
+
+export function vacancyKey(job = {}) {
+  try {
+    const url = new URL(job.url);
+    url.hostname = url.hostname.replace(/^(?:www|uk)\./, "");
+    url.hash = "";
+    for (const key of [...url.searchParams.keys()]) {
+      if (/^(?:utm_|gh_src|source$|ref$|trk|tracking|originalSubdomain)/i.test(key)) url.searchParams.delete(key);
+    }
+    url.pathname = url.pathname.replace(/\/apply\/?$/, "").replace(/\/$/, "");
+    url.searchParams.sort();
+    return url.href;
+  } catch { return ""; }
+}
+
+export function sameVacancy(a = {}, b = {}) {
+  if (a.id && a.id === b.id) return true;
+  const key = vacancyKey(a);
+  if (key && key === vacancyKey(b)) return true;
+  const normalise = value => String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  // Cross-board duplicates without a shared ID: flag the same company/title for
+  // review instead of presenting an old application as a new opportunity.
+  return Boolean(a.company && a.title && normalise(a.company) === normalise(b.company) && normalise(a.title) === normalise(b.title));
+}
+
+export function isRecommendationEligible(job = {}, history = [], now = new Date()) {
+  if (job.removed || !["new", "saved", "applying"].includes(normaliseStatus(job.status || "new"))) return false;
+  if (!isOpeningVerified(job, now)) return false;
+  return !history.some(previous => sameVacancy(job, previous) &&
+    (previous.appliedDate || previous.removed || ["applied", "follow_up", "interview", "offer", "rejected", "withdrawn", "closed", "skipped", "hired"].includes(normaliseStatus(previous.status))));
 }
 
 export function isJobFresh(input = {}, maxDays = 7, now = new Date()) {
