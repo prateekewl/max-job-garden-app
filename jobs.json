@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-09-07T17:56:24.404Z",
+  "generatedAt": "2026-09-07T21:21:43.937Z",
   "verificationSummary": {
-    "checked": 12,
+    "checked": 11,
     "open": 2,
     "closed": 0,
-    "unknown": 10
+    "unknown": 9
   },
   "freshnessWindowDays": 30,
   "jobs": [
@@ -25,14 +25,14 @@
       "validThrough": "",
       "verification": {
         "status": "open",
-        "checkedAt": "2026-09-07T17:56:22.530Z",
+        "checkedAt": "2026-09-07T21:21:42.774Z",
         "url": "https://job-boards.greenhouse.io/remotecom/jobs/7978374003",
         "reason": "Exact vacancy and enabled application control checked",
         "deadline": "",
         "postedDate": "",
         "applicationUrl": "https://job-boards.greenhouse.io/remotecom/jobs/7978374003"
       },
-      "discoveredAt": "2026-09-07T17:56:22.530Z",
+      "discoveredAt": "2026-09-07T21:21:42.774Z",
       "workPattern": "remote",
       "contractType": "",
       "category": "",
@@ -61,14 +61,14 @@
       "validThrough": "",
       "verification": {
         "status": "open",
-        "checkedAt": "2026-09-07T17:56:22.531Z",
+        "checkedAt": "2026-09-07T21:21:42.776Z",
         "url": "https://job-boards.greenhouse.io/remotecom/jobs/7821429003",
         "reason": "Exact vacancy and enabled application control checked",
         "deadline": "",
         "postedDate": "",
         "applicationUrl": "https://job-boards.greenhouse.io/remotecom/jobs/7821429003"
       },
-      "discoveredAt": "2026-09-07T17:56:22.530Z",
+      "discoveredAt": "2026-09-07T21:21:42.774Z",
       "workPattern": "remote",
       "contractType": "",
       "category": "",
@@ -99,14 +99,14 @@
       "validThrough": "",
       "verification": {
         "status": "open",
-        "checkedAt": "2026-09-07T17:56:22.530Z",
+        "checkedAt": "2026-09-07T21:21:42.774Z",
         "url": "https://job-boards.greenhouse.io/remotecom/jobs/7978374003",
         "reason": "Exact vacancy and enabled application control checked",
         "deadline": "",
         "postedDate": "",
         "applicationUrl": "https://job-boards.greenhouse.io/remotecom/jobs/7978374003"
       },
-      "discoveredAt": "2026-09-07T17:56:22.530Z",
+      "discoveredAt": "2026-09-07T21:21:42.774Z",
       "workPattern": "remote",
       "contractType": "",
       "category": "",
@@ -135,14 +135,14 @@
       "validThrough": "",
       "verification": {
         "status": "open",
-        "checkedAt": "2026-09-07T17:56:22.531Z",
+        "checkedAt": "2026-09-07T21:21:42.776Z",
         "url": "https://job-boards.greenhouse.io/remotecom/jobs/7821429003",
         "reason": "Exact vacancy and enabled application control checked",
         "deadline": "",
         "postedDate": "",
         "applicationUrl": "https://job-boards.greenhouse.io/remotecom/jobs/7821429003"
       },
-      "discoveredAt": "2026-09-07T17:56:22.530Z",
+      "discoveredAt": "2026-09-07T21:21:42.774Z",
       "workPattern": "remote",
       "contractType": "",
       "category": "",
