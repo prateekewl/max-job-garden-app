@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-12T20:59:19.748Z",
+  "generatedAt": "2026-09-12T22:58:16.359Z",
   "verificationSummary": {
     "checked": 11,
     "open": 3,
@@ -25,14 +25,14 @@
       "validThrough": "",
       "verification": {
         "status": "open",
-        "checkedAt": "2026-09-12T20:59:18.576Z",
+        "checkedAt": "2026-09-12T22:58:14.624Z",
         "url": "https://job-boards.greenhouse.io/remotecom/jobs/7978374003",
         "reason": "Exact vacancy and enabled application control checked",
         "deadline": "",
         "postedDate": "",
         "applicationUrl": "https://job-boards.greenhouse.io/remotecom/jobs/7978374003"
       },
-      "discoveredAt": "2026-09-12T20:59:18.575Z",
+      "discoveredAt": "2026-09-12T22:58:14.623Z",
       "workPattern": "remote",
       "contractType": "",
       "category": "",
@@ -61,14 +61,14 @@
       "validThrough": "",
       "verification": {
         "status": "open",
-        "checkedAt": "2026-09-12T20:59:18.577Z",
+        "checkedAt": "2026-09-12T22:58:14.625Z",
         "url": "https://job-boards.greenhouse.io/remotecom/jobs/7821429003",
         "reason": "Exact vacancy and enabled application control checked",
         "deadline": "",
         "postedDate": "",
         "applicationUrl": "https://job-boards.greenhouse.io/remotecom/jobs/7821429003"
       },
-      "discoveredAt": "2026-09-12T20:59:18.575Z",
+      "discoveredAt": "2026-09-12T22:58:14.623Z",
       "workPattern": "remote",
       "contractType": "",
       "category": "",
@@ -97,14 +97,14 @@
       "validThrough": "",
       "verification": {
         "status": "open",
-        "checkedAt": "2026-09-12T20:59:18.578Z",
+        "checkedAt": "2026-09-12T22:58:14.626Z",
         "url": "https://job-boards.greenhouse.io/remotecom/jobs/7978008003",
         "reason": "Exact vacancy and enabled application control checked",
         "deadline": "",
         "postedDate": "",
         "applicationUrl": "https://job-boards.greenhouse.io/remotecom/jobs/7978008003"
       },
-      "discoveredAt": "2026-09-12T20:59:18.575Z",
+      "discoveredAt": "2026-09-12T22:58:14.623Z",
       "workPattern": "remote",
       "contractType": "",
       "category": "",
@@ -135,14 +135,14 @@
       "validThrough": "",
       "verification": {
         "status": "open",
-        "checkedAt": "2026-09-12T20:59:18.576Z",
+        "checkedAt": "2026-09-12T22:58:14.624Z",
         "url": "https://job-boards.greenhouse.io/remotecom/jobs/7978374003",
         "reason": "Exact vacancy and enabled application control checked",
         "deadline": "",
         "postedDate": "",
         "applicationUrl": "https://job-boards.greenhouse.io/remotecom/jobs/7978374003"
       },
-      "discoveredAt": "2026-09-12T20:59:18.575Z",
+      "discoveredAt": "2026-09-12T22:58:14.623Z",
       "workPattern": "remote",
       "contractType": "",
       "category": "",
@@ -171,14 +171,14 @@
       "validThrough": "",
       "verification": {
         "status": "open",
-        "checkedAt": "2026-09-12T20:59:18.577Z",
+        "checkedAt": "2026-09-12T22:58:14.625Z",
         "url": "https://job-boards.greenhouse.io/remotecom/jobs/7821429003",
         "reason": "Exact vacancy and enabled application control checked",
         "deadline": "",
         "postedDate": "",
         "applicationUrl": "https://job-boards.greenhouse.io/remotecom/jobs/7821429003"
       },
-      "discoveredAt": "2026-09-12T20:59:18.575Z",
+      "discoveredAt": "2026-09-12T22:58:14.623Z",
       "workPattern": "remote",
       "contractType": "",
       "category": "",
@@ -207,14 +207,14 @@
       "validThrough": "",
       "verification": {
         "status": "open",
-        "checkedAt": "2026-09-12T20:59:18.578Z",
+        "checkedAt": "2026-09-12T22:58:14.626Z",
         "url": "https://job-boards.greenhouse.io/remotecom/jobs/7978008003",
         "reason": "Exact vacancy and enabled application control checked",
         "deadline": "",
         "postedDate": "",
         "applicationUrl": "https://job-boards.greenhouse.io/remotecom/jobs/7978008003"
       },
-      "discoveredAt": "2026-09-12T20:59:18.575Z",
+      "discoveredAt": "2026-09-12T22:58:14.623Z",
       "workPattern": "remote",
       "contractType": "",
       "category": "",
@@ -241,7 +241,7 @@
     {
       "id": "gitlab",
       "name": "GitLab",
-      "status": "Healthy"
+      "status": "Temporarily unavailable"
     },
     {
       "id": "cision",
